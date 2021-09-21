@@ -120,7 +120,7 @@ function! VimTestDocker()
   let g:test#ruby#rspec#executable='docker-compose exec -e "RAILS_ENV=test" app rspec'
 endfunction
 
-function! VimTestCore()
+function! VimTestLocal()
   let g:test#ruby#rspec#executable='RAILS_ENV=test rspec spec'
 endfunction
 
@@ -154,7 +154,10 @@ nnoremap <F5> :GundoToggle<CR>
 " delete fugitive buffers automatically
 autocmd BufReadPost fugitive://* set bufhidden=delete
 
-autocmd BufRead,BufNewFile *.js HighlightInlineHbs
+augroup javascript_folding
+  au!
+  au FileType javascript setlocal foldmethod=syntax
+augroup END
 
 set nofoldenable
 
@@ -182,3 +185,13 @@ let g:coc_global_extensions = ['coc-tsserver']
 
 let b:ale_fixers = ['prettier', 'eslint']
 let g:ale_fix_on_save = 1
+
+" Remap keys for applying codeAction to the current line.
+nmap <leader>ac  <Plug>(coc-codeaction)
+" Apply AutoFix to problem on the current line.
+nmap <leader>qf  <Plug>(coc-fix-current)
+" GoTo code navigation.
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gy <Plug>(coc-type-definition)
+nmap <silent> gi <Plug>(coc-implementation)
+nmap <silent> gr <Plug>(coc-references)
