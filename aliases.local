@@ -31,6 +31,8 @@ alias preparetest="docker exec -it -e HANAMI_ENV=test core hanami db prepare"
 alias preparedev="doccore hanami db prepare"
 alias mdostaging="AUTH_HOST=https://auth-staging.creditas.com.br ORCHESTRATION_HOST=https://api.journey.stg.creditas.io ember s --proxy=https://core-staging.creditas.com.br"
 
+alias brew="arch -arm64 brew"
+
 alias sed="sed -E"
 
 cdtdevexec() {

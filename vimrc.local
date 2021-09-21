@@ -121,7 +121,7 @@ function! VimTestDocker()
 endfunction
 
 function! VimTestCore()
-  let g:test#ruby#rspec#executable='RAILS_ENV=test rspec'
+  let g:test#ruby#rspec#executable='RAILS_ENV=test rspec spec'
 endfunction
 
 map <Leader>vtl :call VimTestLocal()<CR>
