@@ -26,6 +26,7 @@ alias doccore="docker exec -it core"
 alias docspec="doccore rspec"
 alias preparetest="docker exec -it -e HANAMI_ENV=test core hanami db prepare"
 alias preparedev="doccore hanami db prepare"
+alias k="kubectl"
 
 alias brew="arch -arm64 brew"
 
@@ -62,4 +63,32 @@ function gitMoveTagToCurrentCommit() {
   git push origin :refs/tags/$tagName
   git tag -fa $tagName
   git push origin master --tags
+}
+
+function enterPod() {
+  namespace="$1"
+  podPrefix="$2"
+
+  bash -c "kubectl exec -it -n $namespace $(kubectl get pods --no-headers -n $namespace -o custom-columns=":metadata.name" --field-selector=status.phase=Running | grep $podPrefix | tail -n 1) -- bash"
+}
+
+function createOrUpdateSecretEntry() {
+  namespace="$1"
+  secretName="$2"
+  key="$3"
+  value="$4"
+
+  bash -c "kubectl get secret $secretName -n $namespace -o json | jq --arg $key "$(echo -n $value | base64)" '.data[\"$key\"]=\$$key' | kubectl apply -f -"
+}
+
+function encode() {
+  text="$1"
+
+  echo -n $text | base64
+}
+
+function decode() {
+  text="$1"
+
+  echo -n $text | base64 -d
 }
