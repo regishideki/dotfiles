@@ -120,7 +120,7 @@ function! VimTestLocal()
   let g:test#ruby#rspec#executable='docker-compose exec -e "RAILS_ENV=test" app rspec'
 endfunction
 
-function! VimTestCore()
+function! VimTestLocal()
   let g:test#ruby#rspec#executable='RAILS_ENV=test rspec spec'
 endfunction
 
