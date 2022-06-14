@@ -9,6 +9,7 @@
 - install rvm, tmux
 - install zsh + oh-my-zsh https://github.com/robbyrussell/oh-my-zsh and use zsh as default shell
 - install https://github.com/sindresorhus/pure
+- install https://github.com/jonmosco/kube-tmux to show kube context
 
 - run init.sh to clone repositories
 - use this repo to config other dotfiles(instructions on how to install rcm is in the section below)
