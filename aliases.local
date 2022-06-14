@@ -6,9 +6,6 @@ alias saliases="source ~/.aliases"
 alias sz="source ~/.zshrc"
 alias sv="source ~/.vimrc"
 
-alias anot="vim ~/Dropbox/Creditas/anotacoes"
-alias itv="vim ~/Dropbox/Creditas/interview"
-
 alias gs="git status"
 
 alias pl="cd ~/workspace/regis/programming-languages"
@@ -29,36 +26,10 @@ alias doccore="docker exec -it core"
 alias docspec="doccore rspec"
 alias preparetest="docker exec -it -e HANAMI_ENV=test core hanami db prepare"
 alias preparedev="doccore hanami db prepare"
-alias mdostaging="AUTH_HOST=https://auth-staging.creditas.com.br ORCHESTRATION_HOST=https://api.journey.stg.creditas.io ember s --proxy=https://core-staging.creditas.com.br"
 
 alias brew="arch -arm64 brew"
 
 alias sed="sed -E"
-
-cdtdevexec() {
-  userCommand=$@
-
-  _cdtExec 'creditas-dev' $userCommand
-}
-
-cdtstgexec() {
-  userCommand=$@
-
-  _cdtExec 'creditas-staging' $userCommand
-}
-
-cdtprodexec() {
-  userCommand=$@
-
-  _cdtExec 'creditas-prod' $userCommand
-}
-
-_cdtExec() {
-  awsProfile=$1
-  userCommand="${@:2}"
-
-  bash -c "aws-vault exec $awsProfile -- $userCommand"
-}
 
 gitmerge() {
   git checkout $1
@@ -77,22 +48,6 @@ function killwhouseport() {
   port="$1"
 
   kill $(lsof -nP -i4TCP:$port | grep LISTEN | awk '{print $2}')
-}
-
-function vaultLogin() {
-  export VAULT_ADDR=https://vault.stg.creditas.io
-  vault login -method=github
-}
-
-function vaultNewJourneyDatabaseStagingAccess() {
-  export VAULT_ADDR=https://vault.stg.creditas.io
-  result=$(vault read journey/database/creds/dev-readonly)
-
-  username=$(echo $result | grep 'username' | awk '{print $2}')
-  password=$(echo $result | grep 'password' | awk '{print $2}')
-
-  echo $result
-  echo "string de conexão: postgres://$username:$password@db.api.journey.stg.creditas.io/journey"
 }
 
 function dockerLocalPostgresCommand() {
