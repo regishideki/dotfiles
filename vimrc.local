@@ -116,7 +116,7 @@ let g:tslime_always_current_window = 1
 vmap <C-c><C-c> <Plug>SendSelectionToTmux
 nmap <C-c><C-c> <Plug>NormalModeSendToTmux
 
-function! VimTestDocker()
+function! VimTestLocal()
   let g:test#ruby#rspec#executable='docker-compose exec -e "RAILS_ENV=test" app rspec'
 endfunction
 
@@ -154,7 +154,15 @@ nnoremap <F5> :GundoToggle<CR>
 " delete fugitive buffers automatically
 autocmd BufReadPost fugitive://* set bufhidden=delete
 
-autocmd BufRead,BufNewFile *.js HighlightInlineHbs
+" acho que isso só era necessário quando codava ember no vim... nesse caso, o augroup abaixo não existia. Vou deixar
+" um tempo aqui comentado até ter certeza que posso apagar
+" autocmd BufRead,BufNewFile *.js HighlightInlineHbs
+" augroup END
+
+augroup javascript_folding
+  au!
+  au FileType javascript setlocal foldmethod=syntax
+augroup END
 
 set nofoldenable
 
