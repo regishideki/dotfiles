@@ -38,6 +38,7 @@ clone_from_projects ~/ $personal_github $config_projects
 
 ln ~/dotfiles/zshrc.local $HOME/.zshrc.local
 ln ~/dotfiles/ideavimrc $HOME/.ideavimrc
+ln ~/dotfiles/genial_core/projections.json $HOME/workspace/genial/core/.projections.json
 
 mkdir -p ~/.vim/autoload ~/.vim/bundle && \
   curl -LSso ~/.vim/autoload/pathogen.vim https://tpo.pe/pathogen.vim

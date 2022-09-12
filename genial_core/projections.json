@@ -1,0 +1,15 @@
+{
+  "app/infra*.rb": {
+    "alternate": "spec/infra{}_spec.rb"
+  },
+
+  "spec/infra*_spec.rb": {
+    "alternate": "app/infra{}.rb",
+    "template": [
+      "require 'rails_helper'",
+      "",
+      "describe {capitalize|camelcase|colons} do",
+      "end"
+    ]
+  }
+}

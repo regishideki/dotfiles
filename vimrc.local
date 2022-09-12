@@ -167,6 +167,7 @@ augroup END
 set nofoldenable
 
 nnoremap <leader>f :GFiles<cr>
+nnoremap <leader>h :History<cr>
 nnoremap <leader>F :FF<cr>
 
 "Use MRU as default in CtrlP
