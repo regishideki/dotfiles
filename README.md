@@ -1,12 +1,13 @@
 # New machine configuration
 - install chrome, dropbox
 - generate a ssh key to add to github (https://help.github.com/articles/generating-an-ssh-key)
-- sudo apt-get install git vim docker docker-compose calibre
+- sudo apt-get install git vim docker docker-compose
 - install vim with clipboard (for more details: http://vimcasts.org/blog/2013/11/getting-vim-with-clipboard-support/)
   - if in Ubuntu: apt-get install vim-gnome
   - if MacOS: brew install vim 
 - install [vim-plug](https://github.com/junegunn/vim-plug) and [pathogen](https://github.com/tpope/vim-pathogen)
-- install rvm, tmux
+  - if MacOS install brew
+- install rvm, tmux (funciona no 3.3a)
 - install zsh + oh-my-zsh https://github.com/robbyrussell/oh-my-zsh and use zsh as default shell
 - install https://github.com/sindresorhus/pure
 - install https://github.com/jonmosco/kube-tmux to show kube context
@@ -19,6 +20,8 @@
 
 if in macOS, install
 - https://robots.thoughtbot.com/tmux-copy-paste-on-os-x-a-better-future
+
+- install and configure kubernetes
 
 - remap caps lock (https://askubuntu.com/questions/177824/remapping-caps-lock-to-control-and-escape-not-the-usual-way/228379)
 sudo apt-get install xcape
