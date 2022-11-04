@@ -29,3 +29,4 @@ export PATH=$HOME/local-bin/:$PATH
 
 source <(kubectl completion zsh)
 
+export USE_GKE_GCLOUD_AUTH_PLUGIN=True
