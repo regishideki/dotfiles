@@ -46,7 +46,7 @@ gcapf() {
 gca() {
   message="$@"
 
-  git commit --amend -m $message
+  git commit --amend
 }
 
 gc() {
