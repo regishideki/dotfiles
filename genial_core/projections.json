@@ -1,10 +1,9 @@
 {
-  "app/infra*.rb": {
-    "alternate": "spec/infra{}_spec.rb"
+  "app/controllers/*_controller.rb": {
+    "alternate": "spec/requests/api/{}_spec.rb"
   },
-
-  "spec/infra*_spec.rb": {
-    "alternate": "app/infra{}.rb",
+  "spec/requests/api/*_spec.rb": {
+    "alternate": "app/controllers/{}_controller.rb",
     "template": [
       "require 'rails_helper'",
       "",

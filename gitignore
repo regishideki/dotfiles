@@ -11,5 +11,9 @@ tags
 tmp/**/*
 !tmp/cache/.keep
 *.pyc
+
+# In general or in Rails projects (see vim.rails)
 .projections.json
+config/projections.json
+
 *snippets*
