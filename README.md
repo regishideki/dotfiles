@@ -42,6 +42,8 @@ install emacs
   - install graphviz to see the graphs
     brew install graphviz
 
+- Install copilot.vim plugin
+
 thoughtbot dotfiles
 ===================
 

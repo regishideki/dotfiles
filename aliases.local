@@ -27,6 +27,7 @@ alias docspec="doccore rspec"
 alias preparetest="docker exec -it -e HANAMI_ENV=test core hanami db prepare"
 alias preparedev="doccore hanami db prepare"
 alias k="kubectl"
+alias uuid="uuidgen | tr -d '\n' | tr '[:upper:]' '[:lower:]'
 
 alias brew="arch -arm64 brew"
 

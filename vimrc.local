@@ -3,6 +3,8 @@ set hlsearch
 map <Leader>h :noh<cr>
 set textwidth=120
 
+set shell=bash\ -l
+
 nnoremap <Leader>w :w!<CR>
 nnoremap <Leader>q :q!<CR>
 nnoremap <Leader>wq :wq!<CR>
@@ -116,8 +118,12 @@ let g:tslime_always_current_window = 1
 vmap <C-c><C-c> <Plug>SendSelectionToTmux
 nmap <C-c><C-c> <Plug>NormalModeSendToTmux
 
+let test#python#runner = 'pyunit'
+
 function! VimTestDocker()
   let g:test#ruby#rspec#executable='docker-compose exec -e "RAILS_ENV=test" app rspec'
+  " não encontrei paralelo para python
+  let g:test#python#unittest#executable='echo 1'
 endfunction
 
 function! VimTestLocal()
@@ -191,3 +197,6 @@ let g:coc_global_extensions = ['coc-tsserver']
 
 let b:ale_fixers = ['prettier', 'eslint']
 let g:ale_fix_on_save = 1
+
+"change nerdtree http://vimcasts.org/blog/2013/01/oil-and-vinegar-split-windows-and-project-drawer/
+let NERDTreeHijackNetrw=1

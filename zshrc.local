@@ -1,4 +1,4 @@
-export MAVEN_HOME=/Users/regishattori/apache-maven-3.5.4
+#export MAVEN_HOME=/Users/regishattori/apache-maven-3.5.4
 export PATH=$PATH:$MAVEN_HOME/bin
 
 [ -s "$HOME/.sdkman/bin/sdkman-init.sh" ] && source "$HOME/.sdkman/bin/sdkman-init.sh"
