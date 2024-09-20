@@ -27,11 +27,19 @@ alias docspec="doccore rspec"
 alias preparetest="docker exec -it -e HANAMI_ENV=test core hanami db prepare"
 alias preparedev="doccore hanami db prepare"
 alias k="kubectl"
-alias uuid="uuidgen | tr -d '\n' | tr '[:upper:]' '[:lower:]'
+alias uuid="uuidgen | tr -d '\n' | tr '[:upper:]' '[:lower:]'"
 
 alias brew="arch -arm64 brew"
 
 alias sed="sed -E"
+
+gitbranches() {
+  git for-each-ref --format=' %(authorname) %09 %(refname)' --sort=authorname
+}
+
+gitmybranches() {
+  git for-each-ref --format=' %(authorname) %09 %(refname)' --sort=authorname | grep 'Regis Hideki Hattori'
+}
 
 gitmerge() {
   git checkout $1

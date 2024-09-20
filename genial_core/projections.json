@@ -10,5 +10,8 @@
       "describe {capitalize|camelcase|colons} do",
       "end"
     ]
+  },
+  "packs/clinical/spec/concepts/{}_spec.rb": {
+    "alternate": "packs/clinical/app/concepts/{}.rb"
   }
 }
