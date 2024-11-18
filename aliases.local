@@ -121,3 +121,28 @@ function decode() {
 
   echo -n $text | base64 -d
 }
+
+show_contents() {
+    local separator="-------------------------------------------------------------------------------------------"
+    local input_paths=("$@")
+
+    for target_path in "${input_paths[@]}"; do
+        # Expande os wildcards manualmente se necessário
+        local expanded_paths=($target_path)
+        for expanded_path in "${expanded_paths[@]}"; do
+            if [ -f "$expanded_path" ]; then
+                echo "Arquivo: $expanded_path"
+                cat "$expanded_path"
+                echo "$separator"
+            elif [ -d "$expanded_path" ]; then
+                find "$expanded_path" -type f -print0 | while IFS= read -r -d '' file; do
+                    echo "Arquivo: $file"
+                    cat "$file"
+                    echo "$separator"
+                done
+            else
+                echo "O caminho fornecido não é um arquivo nem uma pasta: $expanded_path"
+            fi
+        done
+    done
+}
