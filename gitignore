@@ -19,3 +19,4 @@ config/projections.json
 *snippets*
 *.rest
 repopack-output.txt
+**custom_gitignore**
