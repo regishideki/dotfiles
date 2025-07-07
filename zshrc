@@ -89,3 +89,7 @@ if [ -f '/Users/regis/Applications/google-cloud-sdk/path.zsh.inc' ]; then . '/Us
 
 # The next line enables shell command completion for gcloud.
 if [ -f '/Users/regis/Applications/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/regis/Applications/google-cloud-sdk/completion.zsh.inc'; fi
+
+PATH=~/.console-ninja/.bin:$PATH
+# Added by Windsurf
+export PATH="/Users/regishattori/.codeium/windsurf/bin:$PATH"
