@@ -20,3 +20,4 @@ config/projections.json
 repopack-output.txt
 **custom_gitignore**
 .cursorrules
+venv/**
