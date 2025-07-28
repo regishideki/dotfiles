@@ -22,4 +22,3 @@ repopack-output.txt
 .cursorrules
 venv/**
 bin/**
-lib/**
