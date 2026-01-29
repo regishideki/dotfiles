@@ -33,6 +33,7 @@ nnoremap <leader>= :wincmd =<cr>
 nnoremap <leader>osr :VtrOpenRunner<CR>
 nnoremap <leader>va :VtrAttachToPane<CR>
 nnoremap <C-f> :VtrSendLinesToRunner<CR>
+vnoremap <C-f> :VtrSendLinesToRunner<CR>
 nnoremap <leader>sc :VtrSendCommandToRunner<CR>
 
 " remove files from crlp
