@@ -84,12 +84,14 @@ export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/regis/Applications/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/regis/Applications/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/regis/Applications/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/regis/Applications/google-cloud-sdk/completion.zsh.inc'; fi
-
 PATH=~/.console-ninja/.bin:$PATH
 # Added by Windsurf
 export PATH="/Users/regishattori/.codeium/windsurf/bin:$PATH"
+export PIPX_HOME="$HOME/.local/pipx"
+export PIPX_BIN_DIR="$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+
+# Added by Antigravity
+export PATH="/Users/regishattori/.antigravity/antigravity/bin:$PATH"
+
+

@@ -15,6 +15,7 @@
 [core]
   excludesfile = ~/.gitignore
   autocrlf = input
+	pager = less -FRX
 [commit]
   template = ~/.gitmessage
 [fetch]

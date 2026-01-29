@@ -21,4 +21,8 @@ repopack-output.txt
 **custom_gitignore**
 .cursorrules
 venv/**
-bin/**
+gin/**
+GEMINI.md
+
+CLAUDE.md
+.claude/
