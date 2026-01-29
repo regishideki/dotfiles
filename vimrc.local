@@ -122,7 +122,7 @@ nmap <C-c><C-c> <Plug>NormalModeSendToTmux
 let test#python#runner = 'pyunit'
 
 function! VimTestDocker()
-  let g:test#ruby#rspec#executable='docker-compose exec -e "RAILS_ENV=test" app rspec'
+  let g:test#ruby#rspec#executable='docker-compose exec -e "RAILS_ENV=test" app bundle exec rspec'
   " não encontrei paralelo para python
   let g:test#python#unittest#executable='echo 1'
 endfunction
