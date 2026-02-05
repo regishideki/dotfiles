@@ -1,5 +1,6 @@
 set backspace=indent,eol,start
 set hlsearch
+set clipboard=unnamed
 map <Leader>h :noh<cr>
 set textwidth=120
 
