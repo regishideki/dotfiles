@@ -217,6 +217,11 @@ nnoremap <leader>cl :let @+=expand("%") . ":" . line(".")<CR>:echo "Copied: " . 
 " Melhorar legibilidade com fundo preto
 set background=dark
 
+" Desabilitar spell check
+set nospell
+" Configurar spell check para português e inglês
+" set spelllang=pt,en
+
 " Cores mais legíveis para comentários (cinza claro)
 highlight Comment ctermfg=grey guifg=grey60
 
