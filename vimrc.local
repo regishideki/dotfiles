@@ -175,7 +175,8 @@ augroup END
 set nofoldenable
 
 " Fuzzy search incluindo arquivos específicos do gitignore
-let $FZF_DEFAULT_COMMAND = 'rg --files --hidden --follow --glob "!.git/*" --glob "!**/custom_git_ignore/**" | cat; find custom_git_ignore -type f 2>/dev/null; rg --files --hidden | grep snippets'
+" Lista arquivos git + arquivos em custom_git_ignore + arquivos com 'snippets' no nome
+let $FZF_DEFAULT_COMMAND = '(git ls-files; find custom_git_ignore -type f 2>/dev/null; rg --files --no-ignore --hidden --glob "!.git/*" | grep snippets) | sort -u'
 
 nnoremap <leader>f :Files<cr>
 nnoremap <leader>gf :GFiles<cr>
