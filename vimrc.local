@@ -174,7 +174,11 @@ augroup END
 
 set nofoldenable
 
-nnoremap <leader>f :GFiles<cr>
+" Fuzzy search incluindo arquivos específicos do gitignore
+let $FZF_DEFAULT_COMMAND = 'rg --files --hidden --follow --glob "!.git/*" --glob "!**/custom_git_ignore/**" | cat; find custom_git_ignore -type f 2>/dev/null; rg --files --hidden | grep snippets'
+
+nnoremap <leader>f :Files<cr>
+nnoremap <leader>gf :GFiles<cr>
 nnoremap <leader>h :History<cr>
 nnoremap <leader>F :FF<cr>
 
@@ -202,3 +206,21 @@ let g:ale_fix_on_save = 1
 
 "change nerdtree http://vimcasts.org/blog/2013/01/oil-and-vinegar-split-windows-and-project-drawer/
 let NERDTreeHijackNetrw=1
+
+" Copy file paths to clipboard
+nnoremap <leader>cf :let @+=expand("%")<CR>:echo "Copied relative path: " . expand("%")<CR>
+nnoremap <leader>cF :let @+=expand("%:p")<CR>:echo "Copied absolute path: " . expand("%:p")<CR>
+nnoremap <leader>cn :let @+=expand("%:t")<CR>:echo "Copied filename: " . expand("%:t")<CR>
+nnoremap <leader>cl :let @+=expand("%") . ":" . line(".")<CR>:echo "Copied: " . expand("%") . ":" . line(".")<CR>
+
+" Melhorar legibilidade com fundo preto
+set background=dark
+
+" Cores mais legíveis para comentários (cinza claro)
+highlight Comment ctermfg=grey guifg=grey60
+
+" Cores para NERDTree com melhor contraste
+highlight Directory ctermfg=cyan guifg=cyan
+highlight NERDTreeDir ctermfg=cyan guifg=cyan
+highlight NERDTreeOpenable ctermfg=green guifg=green
+highlight NERDTreeClosable ctermfg=green guifg=green
