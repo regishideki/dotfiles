@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(env RCRC=$HOME/dotfiles/rcrc rcup:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git reset:*)"
+    ]
+  }
+}

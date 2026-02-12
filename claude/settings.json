@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(yarn test:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create --draft --title \"feat: add updateClinicalCaseDiscipline mutation\" --body \"$\\(cat <<''EOF''\n## Summary\n- Adiciona mutation `updateClinicalCaseDiscipline` para atualizar status e nota de disciplinas de casos clínicos\n- Inclui datasource `ClinicalCaseDisciplinesApi` para comunicação com Core API\n- Adiciona teste de integração para a mutation\n\n## Test plan\n- [x] Teste de integração passa localmente\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\nEOF\n\\)\")"
+    ],
+    "defaultMode": "default"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // empty'); git_branch=\"\"; if git -C \"$cwd\" rev-parse --git-dir > /dev/null 2>&1; then git_branch=$(git -C \"$cwd\" branch --show-current 2>/dev/null); [ -n \"$git_branch\" ] && git_branch=\" ($git_branch)\"; fi; status_line=\"${model} | ${cwd}${git_branch}\"; if [ -n \"$remaining\" ]; then remaining_int=$(printf \"%.0f\" \"$remaining\"); status_line=\"${status_line} | Context: ${remaining_int}%\"; fi; echo \"$status_line\""
+  },
+  "model": "sonnet"
+}

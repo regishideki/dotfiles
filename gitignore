@@ -23,5 +23,3 @@ repopack-output.txt
 venv/**
 gin/**
 GEMINI.md
-.claude
-.claude/settings.local.json
