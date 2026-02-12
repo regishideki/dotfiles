@@ -1,6 +1,6 @@
 # Claude Code Configuration
 
-Este diretório contém as configurações globais do Claude Code, integradas ao sistema de dotfiles via [rcm](https://github.com/thoughtbot/rcm).
+Este diretório contém as configurações globais do Claude Code, integradas ao sistema de dotfiles.
 
 ## Estrutura
 
@@ -16,10 +16,15 @@ claude/
 
 ## Como Funciona
 
-O rcm cria symlinks automáticos:
-- `~/dotfiles/claude/CLAUDE.md` → `~/.claude/CLAUDE.md`
-- `~/dotfiles/claude/settings.json` → `~/.claude/settings.json`
-- E assim por diante...
+**`~/.claude` é um symlink direto para este diretório:**
+- `~/.claude/` → `~/dotfiles/claude/`
+
+Isso significa que **qualquer arquivo criado ou modificado em `~/.claude/` já está automaticamente no git**!
+
+✅ Você ou o Claude podem criar/modificar arquivos diretamente
+✅ Tudo já fica versionado automaticamente
+✅ Não precisa copiar nada manualmente
+✅ O `.gitignore` cuida dos arquivos temporários
 
 ### Arquivos Versionados
 
@@ -41,25 +46,38 @@ Arquivos temporários e caches não são versionados:
 
 1. Clone o repositório dotfiles:
    ```bash
-   git clone git@github.com:seu-usuario/dotfiles.git ~/dotfiles
+   git clone git@github.com:regishideki/dotfiles.git ~/dotfiles
    ```
 
-2. Execute o rcup para criar os symlinks:
+2. Crie o symlink para a pasta claude:
+   ```bash
+   ln -s ~/dotfiles/claude ~/.claude
+   ```
+
+3. Execute o rcup para os outros dotfiles:
    ```bash
    env RCRC=$HOME/dotfiles/rcrc rcup
    ```
 
-3. Os arquivos de configuração do Claude estarão automaticamente em `~/.claude/`
+Pronto! Suas configurações do Claude estarão em `~/.claude/`
 
 ## Atualizações
 
-Quando você modificar configurações do Claude (adicionar commands, skills, etc), as mudanças já estarão no repositório automaticamente via symlinks. Basta fazer commit:
+Como `~/.claude` é um symlink direto para `~/dotfiles/claude/`, qualquer mudança já está no git!
 
 ```bash
 cd ~/dotfiles
-git add claude/
+git status              # Ver o que mudou
+git add claude/         # Adicionar mudanças
 git commit -m "Update Claude configurations"
 git push
+```
+
+**Exemplo prático:**
+```bash
+# Claude cria um novo arquivo em ~/.claude/skills/my-skill/SKILL.md
+# O arquivo já está em ~/dotfiles/claude/skills/my-skill/SKILL.md
+# Basta commitar!
 ```
 
 ## Nota sobre Plugins
