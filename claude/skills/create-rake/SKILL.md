@@ -336,6 +336,8 @@ end
 
 ### 5. Argumentos Configuráveis
 
+**Argumentos simples:**
+
 ```ruby
 task :task_name, [:arg1, :arg2] => :environment do |_, args|
   # With defaults
@@ -349,7 +351,27 @@ end
 # Usage: rake namespace:task_name[value1,42]
 ```
 
-Via ENV:
+**Múltiplos valores em um argumento (use "|" como delimitador):**
+
+```ruby
+task :task_name, [:tenant_names, :initial, :final] => :environment do |_, args|
+  # Parse tenant names separated by "|"
+  tenant_names = args[:tenant_names] || "genialcare"
+  tenant_args = tenant_names.split("|")
+  initial = args[:initial]&.to_i || 1
+  final = args[:final]&.to_i || 1_000_000
+
+  puts "Tenants: #{tenant_args.join(", ")}"
+  puts "Range: #{initial}-#{final}"
+end
+
+# Usage:
+# Single value:   rake namespace:task_name[genialcare,1,100]
+# Multiple values: rake namespace:task_name[genialcare|other_tenant,1,100]
+# All values:     rake namespace:task_name[all,1,100]
+```
+
+**Via ENV:**
 
 ```ruby
 task task_name: :environment do
