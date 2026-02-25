@@ -192,6 +192,10 @@ map ff <Plug>(easymotion-prefix)
 
 let g:ale_emit_conflict_warnings = 0
 
+" Desabilitar checkers de Python (evita warnings ao abrir arquivos .py)
+let g:syntastic_python_checkers = []
+let g:ale_linters = {'python': []}
+
 "Try to avoid typescript syntax highlight to break vim
 "set redrawtime=10000
 
