@@ -29,7 +29,11 @@
       "Bash(docker compose exec:*)",
       "Bash(docker compose ps:*)",
       "Bash(timeout 120 head:*)",
-      "Bash(kubectl pod enter production core web psql '$DATABASE_URL')"
+      "Bash(kubectl pod enter production core web psql '$DATABASE_URL')",
+      "Bash(git revert:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl logs:*)"
     ],
     "defaultMode": "default"
   },
