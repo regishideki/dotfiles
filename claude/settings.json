@@ -34,7 +34,15 @@
       "Bash(kubectl get:*)",
       "Bash(kubectl describe:*)",
       "Bash(kubectl logs:*)",
-      "WebFetch(domain:*)"
+      "WebFetch(domain:*)",
+      "Bash(npx vitest:*)",
+      "Bash(yarn types:*)",
+      "Bash(yarn lint:fix:*)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm use:*)",
+      "WebSearch",
+      "Bash(find:*)",
+      "Bash(node:*)"
     ],
     "defaultMode": "default"
   },
