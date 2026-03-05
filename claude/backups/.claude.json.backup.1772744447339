@@ -173,7 +173,7 @@
   "opusProMigrationComplete": true,
   "thinkingMigrationComplete": true,
   "cachedChromeExtensionInstalled": true,
-  "changelogLastFetched": 1772743217844,
+  "changelogLastFetched": 1772744016260,
   "autoUpdatesProtectedForNative": true,
   "claudeCodeFirstTokenDate": "2026-01-28T12:02:58.240589Z",
   "hasCompletedOnboarding": true,
@@ -466,16 +466,7 @@
     "/Users/regishattori/workspace/genial/clinical-panel": {
       "allowedTools": [],
       "mcpContextUris": [],
-      "mcpServers": {
-        "playwright": {
-          "type": "stdio",
-          "command": "npx",
-          "args": [
-            "@playwright/mcp@latest"
-          ],
-          "env": {}
-        }
-      },
+      "mcpServers": {},
       "enabledMcpjsonServers": [],
       "disabledMcpjsonServers": [],
       "hasTrustDialogAccepted": true,
@@ -743,7 +734,7 @@
       "enabledMcpjsonServers": [],
       "disabledMcpjsonServers": [],
       "hasTrustDialogAccepted": true,
-      "projectOnboardingSeenCount": 23,
+      "projectOnboardingSeenCount": 26,
       "hasClaudeMdExternalIncludesApproved": false,
       "hasClaudeMdExternalIncludesWarningShown": false,
       "reactVulnerabilityCache": {
@@ -1246,7 +1237,7 @@
       "timestamp": 1771002612208
     }
   },
-  "lastReleaseNotesSeen": "2.1.58",
+  "lastReleaseNotesSeen": "2.1.63",
   "hasShownOpus45Notice": {
     "b478bcf9-a655-4359-bb6b-1e4482804b08": true,
     "00e9fab5-5b8d-44e3-b761-5ee8c7c8d11c": true
