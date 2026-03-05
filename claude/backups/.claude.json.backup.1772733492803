@@ -1,5 +1,5 @@
 {
-  "numStartups": 87,
+  "numStartups": 89,
   "installMethod": "native",
   "autoUpdates": false,
   "theme": "light",
@@ -38,20 +38,19 @@
     "agent-flag": 82,
     "permissions": 83,
     "rename-conversation": 87,
-    "custom-commands": 73,
+    "custom-commands": 88,
     "frontend-design-plugin": 57,
     "overage-promo": 59,
-    "git-worktrees": 83
+    "git-worktrees": 83,
+    "feedback-command": 89
   },
-  "promptQueueUseCount": 113,
+  "promptQueueUseCount": 121,
   "autoConnectIde": true,
   "cachedGrowthBookFeatures": {
     "tengu_1p_event_batch_config": {
       "scheduledDelayMillis": 10000,
       "maxExportBatchSize": 400,
-      "maxQueueSize": 8192,
-      "skipAuth": true,
-      "maxAttempts": 1
+      "maxQueueSize": 8192
     },
     "tengu_mcp_tool_search": true,
     "tengu_scratch": false,
@@ -149,7 +148,18 @@
     "tengu_amber_quartz": false,
     "tengu_amber_prism": false,
     "tengu_summarize_tool_results": false,
-    "tengu_turtle_carbon": true
+    "tengu_turtle_carbon": true,
+    "tengu_grey_wool": true,
+    "tengu_frond_boric": {},
+    "tengu_quiet_hollow": true,
+    "tengu_cicada_nap_ms": 0,
+    "tengu_miraculo_the_bard": false,
+    "tengu_granite_whisper": false,
+    "tengu_quartz_falcon": null,
+    "tengu_desktop_upsell": {
+      "enable_shortcut_tip": false,
+      "enable_startup_dialog": false
+    }
   },
   "userID": "d97b0bb4bffa6447abf7d3c7ada0af4f7bd5a320e013f429e4912bd2ecc20d2c",
   "firstStartTime": "2026-01-28T11:55:19.466Z",
@@ -158,7 +168,7 @@
   "opusProMigrationComplete": true,
   "thinkingMigrationComplete": true,
   "cachedChromeExtensionInstalled": true,
-  "changelogLastFetched": 1772655255505,
+  "changelogLastFetched": 1772733436007,
   "autoUpdatesProtectedForNative": true,
   "claudeCodeFirstTokenDate": "2026-01-28T12:02:58.240589Z",
   "hasCompletedOnboarding": true,
@@ -171,7 +181,7 @@
       "enabledMcpjsonServers": [],
       "disabledMcpjsonServers": [],
       "hasTrustDialogAccepted": true,
-      "projectOnboardingSeenCount": 17,
+      "projectOnboardingSeenCount": 19,
       "hasClaudeMdExternalIncludesApproved": false,
       "hasClaudeMdExternalIncludesWarningShown": false,
       "reactVulnerabilityCache": {
@@ -181,22 +191,39 @@
         "version": null,
         "packageManager": null
       },
-      "lastCost": 0,
-      "lastAPIDuration": 0,
-      "lastAPIDurationWithoutRetries": 0,
-      "lastToolDuration": 0,
-      "lastDuration": 264155441,
-      "lastLinesAdded": 0,
-      "lastLinesRemoved": 0,
-      "lastTotalInputTokens": 0,
-      "lastTotalOutputTokens": 0,
-      "lastTotalCacheCreationInputTokens": 0,
-      "lastTotalCacheReadInputTokens": 0,
+      "lastCost": 0.68313745,
+      "lastAPIDuration": 160762,
+      "lastAPIDurationWithoutRetries": 160743,
+      "lastToolDuration": 22460,
+      "lastDuration": 692495142,
+      "lastLinesAdded": 40,
+      "lastLinesRemoved": 28,
+      "lastTotalInputTokens": 5919,
+      "lastTotalOutputTokens": 7312,
+      "lastTotalCacheCreationInputTokens": 27243,
+      "lastTotalCacheReadInputTokens": 802069,
       "lastTotalWebSearchRequests": 0,
-      "lastFpsAverage": 0,
-      "lastFpsLow1Pct": 20.16,
-      "lastModelUsage": {},
-      "lastSessionId": "b3679b56-1f92-42c1-8ecd-b5ec10956318",
+      "lastFpsAverage": 0.01,
+      "lastFpsLow1Pct": 14.75,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 3221,
+          "outputTokens": 1015,
+          "cacheReadInputTokens": 22167,
+          "cacheCreationInputTokens": 11702,
+          "webSearchRequests": 0,
+          "costUSD": 0.0251402
+        },
+        "claude-sonnet-4-6": {
+          "inputTokens": 2698,
+          "outputTokens": 6297,
+          "cacheReadInputTokens": 779902,
+          "cacheCreationInputTokens": 15541,
+          "webSearchRequests": 0,
+          "costUSD": 0.6579972499999999
+        }
+      },
+      "lastSessionId": "b63d7823-9892-4c91-b428-c73b6494fcf1",
       "exampleFiles": [
         "index.js",
         "database.js",
@@ -206,13 +233,27 @@
       ],
       "exampleFilesGeneratedAt": 1771586479932,
       "lastSessionMetrics": {
-        "frame_duration_ms_count": 341,
-        "frame_duration_ms_min": 0.24558400000000802,
-        "frame_duration_ms_max": 83.13924999907613,
-        "frame_duration_ms_avg": 9.864557618534866,
-        "frame_duration_ms_p50": 3.3950000000004366,
-        "frame_duration_ms_p95": 33.67379199899733,
-        "frame_duration_ms_p99": 47.779291798174484
+        "frame_duration_ms_count": 5332,
+        "frame_duration_ms_min": 0.058333000051788986,
+        "frame_duration_ms_max": 1141.813165999949,
+        "frame_duration_ms_avg": 6.051547023233686,
+        "frame_duration_ms_p50": 2.224916499981191,
+        "frame_duration_ms_p95": 29.753810724616045,
+        "frame_duration_ms_p99": 51.96423874661325,
+        "pre_tool_hook_duration_ms_count": 23,
+        "pre_tool_hook_duration_ms_min": 0,
+        "pre_tool_hook_duration_ms_max": 23,
+        "pre_tool_hook_duration_ms_avg": 2.782608695652174,
+        "pre_tool_hook_duration_ms_p50": 1,
+        "pre_tool_hook_duration_ms_p95": 10.29999999999999,
+        "pre_tool_hook_duration_ms_p99": 20.360000000000014,
+        "hook_duration_ms_count": 8,
+        "hook_duration_ms_min": 0,
+        "hook_duration_ms_max": 1,
+        "hook_duration_ms_avg": 0.25,
+        "hook_duration_ms_p50": 0,
+        "hook_duration_ms_p95": 1,
+        "hook_duration_ms_p99": 1
       }
     },
     "/Users/regishattori/workspace/genial/core": {
@@ -316,13 +357,13 @@
         "packageManager": null
       },
       "exampleFiles": [
-        "type-defs.graphql",
         "index.js",
         "clinical-cases-api.js",
         "resolvers.js",
-        "tasks-api.js"
+        "type-defs.graphql",
+        "library-objectives.api.js"
       ],
-      "exampleFilesGeneratedAt": 1771602950846,
+      "exampleFilesGeneratedAt": 1772658269797,
       "lastCost": 1.4113178499999999,
       "lastAPIDuration": 613137,
       "lastAPIDurationWithoutRetries": 612896,
@@ -625,12 +666,12 @@
       },
       "exampleFiles": [
         "vimrc.local",
-        "aliases.local",
-        "vimrc.bundles",
-        "tmux.conf",
-        "init.sh"
+        "known_marketplaces.json",
+        "settings.json",
+        "ruby.snippets",
+        "projections.json"
       ],
-      "exampleFilesGeneratedAt": 1772052638468,
+      "exampleFilesGeneratedAt": 1772733438967,
       "lastCost": 6.267178450000002,
       "lastAPIDuration": 803553,
       "lastAPIDurationWithoutRetries": 802983,
@@ -1146,8 +1187,8 @@
       "/Users/regishattori/workspace/genial/core_training"
     ],
     "genialcare/clinical-panel-bff": [
-      "/Users/regishattori/workspace/genial/clinical-panel-bff-discipline",
-      "/Users/regishattori/workspace/genial/clinical-panel-bff"
+      "/Users/regishattori/workspace/genial/clinical-panel-bff",
+      "/Users/regishattori/workspace/genial/clinical-panel-bff-discipline"
     ],
     "genialcare/clinical-panel": [
       "/Users/regishattori/workspace/genial/clinical-panel"
@@ -1175,7 +1216,7 @@
   "groveConfigCache": {
     "faa1a555-ed08-469b-8011-ae753f144f99": {
       "grove_enabled": true,
-      "timestamp": 1772641819216
+      "timestamp": 1772733400800
     }
   },
   "s1mAccessCache": {
@@ -1185,7 +1226,7 @@
       "timestamp": 1771002612208
     }
   },
-  "lastReleaseNotesSeen": "2.1.50",
+  "lastReleaseNotesSeen": "2.1.69",
   "hasShownOpus45Notice": {
     "b478bcf9-a655-4359-bb6b-1e4482804b08": true,
     "00e9fab5-5b8d-44e3-b761-5ee8c7c8d11c": true
@@ -1203,8 +1244,8 @@
       "lastUsedAt": 1769624924782
     },
     "pr-open": {
-      "usageCount": 20,
-      "lastUsedAt": 1772654766816
+      "usageCount": 24,
+      "lastUsedAt": 1772717407890
     },
     "pr-comments": {
       "usageCount": 1,
@@ -1239,7 +1280,7 @@
   "codeDiffFooterEnabled": true,
   "clientDataCache": {
     "data": {},
-    "timestamp": 1772655930404
+    "timestamp": 1772730285416
   },
   "s1mNonSubscriberAccessCache": {
     "00e9fab5-5b8d-44e3-b761-5ee8c7c8d11c": {
@@ -1307,5 +1348,8 @@
       "usageCount": 8,
       "lastUsedAt": 1772211388058
     }
+  },
+  "feedbackSurveyState": {
+    "lastShownTime": 1772656874273
   }
 }
