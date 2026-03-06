@@ -3,6 +3,7 @@ set hlsearch
 set clipboard=unnamed
 map <Leader>h :noh<cr>
 set textwidth=120
+set colorcolumn=
 
 set shell=bash\ -l
 
