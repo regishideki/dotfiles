@@ -1,5 +1,5 @@
-Se ainda não rodou ainda, rode o comando `make lint:fix` para corrigir os erros de linting.
-Se for problema no snippets.rb não tem problema pois ele está no gitignore.
+Se ainda não rodou ainda, rode o comando de lint para corrigir os erros de linting. Provavelmente ele estará ou no Makefile ou no package.json.
+Se for problema em um arquivo de snippets, não tem problema pois ele está no gitignore.
 
 Veja se já está na branch certa. Se não estiver, crie uma nova branch e faça o commit nela.
 Agora, abra um Pull Request como Draft com "regishideki" como assignee e "GenialCare/capacidade-clinica" como reviewer.

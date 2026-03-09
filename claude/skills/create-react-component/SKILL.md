@@ -55,7 +55,7 @@ export const MyPage = () => {
   // 4. Guard de param obrigatório — TODOS os hooks anteriores devem vir antes deste ponto
   if (!sessionId) throw new Error('Session ID is required');
 
-  // 5. Query Apollo
+  // 5. Query Apollo — useQuery do @apollo/client (useAuthorizedQuery está depreciado)
   const { data, loading, refetch } = useQuery(MY_QUERY, {
     fetchPolicy: 'no-cache',          // 'cache-and-network' para listagens; 'no-cache' para formulários
     variables: { sessionId },
@@ -108,7 +108,8 @@ export const MyPage = () => {
 
 **Regras importantes:**
 - `fetchPolicy: 'no-cache'` para páginas de formulário/avaliação; `'cache-and-network'` para listagens
-- Use `useQuery` diretamente do `@apollo/client` para queries (o Apollo Client do projeto já injeta o token via link chain)
+- Use `useQuery` do `@apollo/client` — `useAuthorizedQuery` está depreciado
+- Queries tipadas com `TypedDocumentNode` no arquivo da query — sem generics no call site
 - `onError` sempre chama `logError()` + `toast.error()` — nunca só um dos dois
 - O guard `if (!param) throw` vem ANTES dos hooks de dados (query), mas DEPOIS de todos os hooks de infraestrutura. Isso é um desvio das regras do React (hooks não podem ser chamados após um possível throw), mas é aceitável neste projeto pois params de rota são estáveis entre renders — o número de hooks nunca varia. Se for possível reestruturar o componente para seguir as regras do React sem sacrificar a clareza, prefira fazer isso
 - O redirect por feature flag usa `useEffect`, nunca retorno condicional antes dos hooks
@@ -235,6 +236,52 @@ export const MyComponent = ({ items, clinicalCaseId, onAction }: ComponentProps)
 
 ---
 
+## Queries GraphQL — `TypedDocumentNode`
+
+Toda query deve ser tipada com `TypedDocumentNode` diretamente no arquivo da query, em `src/queries/`. Isso permite que o Apollo infira automaticamente os tipos de resultado e variáveis no `useQuery`, sem necessidade de generics no call site.
+
+```ts
+// src/queries/feature/getMyItems.ts
+import { gql, TypedDocumentNode } from '@apollo/client';
+import { MyItemStatus } from 'types';
+
+type GetMyItemsQuery = {
+  myItems: {
+    id: string;
+    status: MyItemStatus;
+  }[];
+};
+
+type GetMyItemsQueryVariables = {
+  clinicalCaseId: string;
+};
+
+export const GET_MY_ITEMS: TypedDocumentNode<GetMyItemsQuery, GetMyItemsQueryVariables> = gql`
+  query getMyItems($clinicalCaseId: ID!) {
+    myItems(clinicalCaseId: $clinicalCaseId) {
+      id
+      status
+    }
+  }
+`;
+```
+
+```tsx
+// No componente — sem generics, tipos inferidos automaticamente
+const { data, loading, refetch } = useQuery(GET_MY_ITEMS, {
+  variables: { clinicalCaseId },
+});
+// data é tipado como GetMyItemsQuery | undefined automaticamente
+```
+
+**Regras:**
+- Os tipos da query ficam **junto à definição da query**, não no componente
+- Use `useQuery` do `@apollo/client` diretamente — `useAuthorizedQuery` está depreciado
+- Solicite apenas os campos que o componente realmente usa — não busque campos "por precaução"
+- O tipo completo da entidade (ex: `SpeechTherapyAssessmentsRegistry`) fica em `src/types/` e é usado em páginas de detalhe; a query de listagem define seu próprio tipo enxuto inline
+
+---
+
 ## Mutations
 
 ```tsx
@@ -281,6 +328,57 @@ const SelectedItemsDialogBox = lazy(() =>
 ```
 
 Para modais abertos via `useModal`, veja o padrão no `CLAUDE.md` do projeto.
+
+---
+
+## i18n — Textos e Labels
+
+O projeto usa `react-i18next` com namespaces por domínio em `src/i18n/locales/<namespace>/pt-br.json`.
+
+**Regras:**
+- Todo texto visível ao usuário (labels de status, nomes de avaliações, mensagens) deve ir para o arquivo i18n do namespace correspondente — nunca strings hardcoded no JSX
+- Use `useTranslation('namespace')` nos hooks de infraestrutura do componente (posição 2 no esqueleto de página)
+- Chaves de i18n para status de enum usam o valor do enum como sufixo: `t('status.registry.started')`, `t('status.assessment.not_started')`
+- Nomes curtos de entidades (para uso em labels, tags) ficam em chave própria: `assessmentName` (nome completo), `shortName` (abreviado para UI)
+- **Cores** (valores semânticos do Antd como `'processing'`, `'success'`, `'default'`) NÃO vão para i18n — permanecem como lookup tables locais (`Record<Status, string>`)
+
+```tsx
+// ✅ Correto: texto via t(), cores como lookup local
+const STATUS_COLORS: Record<MyStatus, string> = {
+  [MyStatus.ACTIVE]: 'processing',
+  [MyStatus.DONE]: 'success',
+};
+
+const { t } = useTranslation('myNamespace');
+
+<Tag color={STATUS_COLORS[item.status]}>
+  {t(`status.${item.status}`)}
+</Tag>
+
+// ❌ Errado: strings hardcoded no JSX
+<Tag color="processing">Iniciada</Tag>
+```
+
+---
+
+## Datas — `utils/date`
+
+O projeto tem um módulo `src/utils/date.ts` que configura o dayjs com locale `pt-br`, timezone `America/Sao_Paulo` e todos os plugins necessários.
+
+**Regras:**
+- **Nunca** importe `dayjs` diretamente do pacote (`import dayjs from 'dayjs'`) — importe de `utils/date`
+- Use `PT_BR_DATE_FORMAT` (`'DD/MM/YYYY'`) da mesma importação em vez de hardcodar o formato
+
+```tsx
+// ✅ Correto
+import { dayjs, PT_BR_DATE_FORMAT } from 'utils/date';
+
+dayjs(record.createdAt).format(PT_BR_DATE_FORMAT)  // → '06/03/2026'
+
+// ❌ Errado
+import dayjs from 'dayjs';
+dayjs(record.createdAt).format('DD/MM/YYYY')
+```
 
 ---
 
@@ -507,6 +605,12 @@ const clinicalCase = clinicalCaseFactory
 - [ ] Contexto: provider + hook no mesmo arquivo em `contexts/`
 - [ ] Funções puras de transformação e lookup tables como constantes fora do componente
 - [ ] `useMemo` para computações derivadas de props/estado
+- [ ] Textos visíveis via `useTranslation` — nenhuma string hardcoded no JSX
+- [ ] Datas formatadas com `dayjs` e `PT_BR_DATE_FORMAT` de `utils/date` (nunca import direto do pacote)
+- [ ] Cores de status como lookup table local (`Record<Status, string>`) — não vão para i18n
+- [ ] Queries tipadas com `TypedDocumentNode` no arquivo da query; `useQuery` sem generics no componente
+- [ ] `useQuery` do `@apollo/client` (não `useAuthorizedQuery` — depreciado)
+- [ ] Query solicita apenas os campos usados pelo componente — sem campos "por precaução"
 - [ ] Mutations: `useAuthorizedMutation` com `onError` e `onCompleted`
 - [ ] Testes usam factories, não objetos inline
 - [ ] Flag desativada = comportamento padrão (sem `enableFlags` no describe principal)

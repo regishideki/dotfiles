@@ -42,7 +42,8 @@
       "Bash(nvm use:*)",
       "WebSearch",
       "Bash(find:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Read(*)"
     ],
     "defaultMode": "default"
   },

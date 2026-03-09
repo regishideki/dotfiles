@@ -1,5 +1,5 @@
 {
-  "numStartups": 91,
+  "numStartups": 94,
   "installMethod": "native",
   "autoUpdates": false,
   "theme": "light",
@@ -14,37 +14,37 @@
   "tipsHistory": {
     "new-user-warmup": 8,
     "plan-mode-for-complex-tasks": 91,
-    "terminal-setup": 84,
-    "memory-command": 79,
+    "terminal-setup": 94,
+    "memory-command": 94,
     "theme-command": 82,
     "status-line": 2,
     "prompt-queue": 27,
     "enter-to-steer-in-relatime": 82,
     "todo-list": 82,
     "ide-upsell-external-terminal": 91,
-    "install-github-app": 84,
+    "install-github-app": 94,
     "install-slack-app": 2,
-    "drag-and-drop-images": 84,
-    "paste-images-mac": 84,
-    "double-esc-code-restore": 84,
+    "drag-and-drop-images": 94,
+    "paste-images-mac": 94,
+    "double-esc-code-restore": 94,
     "default-permission-mode-config": 2,
-    "continue": 84,
+    "continue": 94,
     "shift-tab": 84,
     "image-paste": 82,
-    "desktop-app": 79,
+    "desktop-app": 94,
     "web-app": 83,
     "mobile-app": 83,
     "custom-agents": 82,
     "agent-flag": 82,
-    "permissions": 83,
+    "permissions": 93,
     "rename-conversation": 87,
     "custom-commands": 88,
     "frontend-design-plugin": 91,
     "overage-promo": 59,
-    "git-worktrees": 83,
+    "git-worktrees": 93,
     "feedback-command": 89
   },
-  "promptQueueUseCount": 124,
+  "promptQueueUseCount": 134,
   "autoConnectIde": true,
   "cachedGrowthBookFeatures": {
     "tengu_1p_event_batch_config": {
@@ -124,7 +124,8 @@
     "tengu_prompt_cache_1h_config": {
       "allowlist": [
         "repl_main_thread*",
-        "sdk"
+        "sdk",
+        "auto_mode"
       ]
     },
     "tengu_birthday_hat": false,
@@ -138,16 +139,16 @@
     "tengu_pebble_leaf_prune": false,
     "tengu_swann_brevity": "focused",
     "tengu_tool_input_aliasing": false,
-    "tengu_streaming_text": false,
+    "tengu_streaming_text": true,
     "tengu_auto_background_agents": false,
-    "tengu_ccr_bridge": true,
+    "tengu_ccr_bridge": false,
     "tengu_coral_whistle": false,
     "tengu_tst_kx7": false,
     "tengu_mulberry_fog": false,
     "tengu_moth_copse": false,
     "tengu_amber_quartz": false,
     "tengu_amber_prism": false,
-    "tengu_summarize_tool_results": false,
+    "tengu_summarize_tool_results": true,
     "tengu_turtle_carbon": true,
     "tengu_grey_wool": true,
     "tengu_frond_boric": {},
@@ -163,9 +164,20 @@
     "tengu_glacier_2xr": false,
     "tengu_swinburne_dune": false,
     "tengu_sotto_voce": true,
-    "tengu_defer_all_bn4": true,
+    "tengu_defer_all_bn4": false,
     "tengu_tst_hint_m7r": false,
-    "tengu_tight_weave": true
+    "tengu_tight_weave": true,
+    "tengu_kairos_cron": false,
+    "tengu_herring_clock": false,
+    "tengu_marble_whisper": false,
+    "tengu_auto_mode_config": {
+      "enabled": "disabled",
+      "twoStageClassifier": true
+    },
+    "tengu_miraculo_the_bard2": false,
+    "tengu_paper_halyard": false,
+    "tengu_basalt_3kr": false,
+    "tengu_satin_quoll": {}
   },
   "userID": "d97b0bb4bffa6447abf7d3c7ada0af4f7bd5a320e013f429e4912bd2ecc20d2c",
   "firstStartTime": "2026-01-28T11:55:19.466Z",
@@ -174,7 +186,7 @@
   "opusProMigrationComplete": true,
   "thinkingMigrationComplete": true,
   "cachedChromeExtensionInstalled": true,
-  "changelogLastFetched": 1772801560782,
+  "changelogLastFetched": 1773069427186,
   "autoUpdatesProtectedForNative": true,
   "claudeCodeFirstTokenDate": "2026-01-28T12:02:58.240589Z",
   "hasCompletedOnboarding": true,
@@ -231,13 +243,13 @@
       },
       "lastSessionId": "b63d7823-9892-4c91-b428-c73b6494fcf1",
       "exampleFiles": [
+        "package.json",
         "index.js",
-        "database.js",
         "get.test.js",
-        "orchestrator.js",
-        "migrations.js"
+        "database.js",
+        "orchestrator.js"
       ],
-      "exampleFilesGeneratedAt": 1771586479932,
+      "exampleFilesGeneratedAt": 1773053600201,
       "lastSessionMetrics": {
         "frame_duration_ms_count": 5332,
         "frame_duration_ms_min": 0.058333000051788986,
@@ -352,7 +364,7 @@
       "enabledMcpjsonServers": [],
       "disabledMcpjsonServers": [],
       "hasTrustDialogAccepted": true,
-      "projectOnboardingSeenCount": 0,
+      "projectOnboardingSeenCount": 1,
       "hasClaudeMdExternalIncludesApproved": false,
       "hasClaudeMdExternalIncludesWarningShown": false,
       "reactVulnerabilityCache": {
@@ -727,7 +739,7 @@
       "enabledMcpjsonServers": [],
       "disabledMcpjsonServers": [],
       "hasTrustDialogAccepted": true,
-      "projectOnboardingSeenCount": 28,
+      "projectOnboardingSeenCount": 38,
       "hasClaudeMdExternalIncludesApproved": false,
       "hasClaudeMdExternalIncludesWarningShown": false,
       "reactVulnerabilityCache": {
@@ -780,7 +792,7 @@
       "enabledMcpjsonServers": [],
       "disabledMcpjsonServers": [],
       "hasTrustDialogAccepted": true,
-      "projectOnboardingSeenCount": 3,
+      "projectOnboardingSeenCount": 4,
       "hasClaudeMdExternalIncludesApproved": false,
       "hasClaudeMdExternalIncludesWarningShown": false,
       "reactVulnerabilityCache": {
@@ -793,45 +805,37 @@
       "exampleFiles": [
         "summarize_intervention_notes.py",
         "text_to_json_schema.py",
+        "pyproject.toml",
         "generate_initial_assessment_report_suggestion.py",
-        "intervention_notes_summaries.py",
-        "notes_markdown_formatter.py"
+        "generate_pei_suggestion.py"
       ],
-      "exampleFilesGeneratedAt": 1771934514548,
-      "lastCost": 0.0303505,
-      "lastAPIDuration": 10304,
-      "lastAPIDurationWithoutRetries": 10301,
-      "lastToolDuration": 1669,
-      "lastDuration": 20838,
+      "exampleFilesGeneratedAt": 1773063108401,
+      "lastCost": 0,
+      "lastAPIDuration": 0,
+      "lastAPIDurationWithoutRetries": 0,
+      "lastToolDuration": 0,
+      "lastDuration": 244206,
       "lastLinesAdded": 0,
       "lastLinesRemoved": 0,
-      "lastTotalInputTokens": 525,
-      "lastTotalOutputTokens": 471,
-      "lastTotalCacheCreationInputTokens": 1612,
-      "lastTotalCacheReadInputTokens": 17927,
+      "lastTotalInputTokens": 0,
+      "lastTotalOutputTokens": 0,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
       "lastTotalWebSearchRequests": 0,
-      "lastFpsAverage": 15.52,
-      "lastFpsLow1Pct": 54.59,
-      "lastModelUsage": {
-        "claude-haiku-4-5-20251001": {
-          "inputTokens": 522,
-          "outputTokens": 50,
-          "cacheReadInputTokens": 0,
-          "cacheCreationInputTokens": 0,
-          "webSearchRequests": 0,
-          "costUSD": 0.000772
-        },
-        "claude-sonnet-4-5-20250929": {
-          "inputTokens": 3,
-          "outputTokens": 421,
-          "cacheReadInputTokens": 17927,
-          "cacheCreationInputTokens": 1612,
-          "webSearchRequests": 0,
-          "costUSD": 0.0295785
-        }
-      },
-      "lastSessionId": "75e45739-b579-4754-981e-ab51607be8d1",
-      "hasCompletedProjectOnboarding": true
+      "lastFpsAverage": 7.05,
+      "lastFpsLow1Pct": 170.53,
+      "lastModelUsage": {},
+      "lastSessionId": "4d0f77ee-6a4c-4403-8168-9736e744b636",
+      "hasCompletedProjectOnboarding": true,
+      "lastSessionMetrics": {
+        "frame_duration_ms_count": 1718,
+        "frame_duration_ms_min": 0.0353330000070855,
+        "frame_duration_ms_max": 58.58162500000253,
+        "frame_duration_ms_avg": 0.8235863981376211,
+        "frame_duration_ms_p50": 0.5546040000044741,
+        "frame_duration_ms_p95": 1.2080143000093808,
+        "frame_duration_ms_p99": 5.766643070000748
+      }
     },
     "/Users/regishattori/workspace/genial/clinical-language-models-extra": {
       "allowedTools": [],
@@ -1220,7 +1224,7 @@
   "groveConfigCache": {
     "faa1a555-ed08-469b-8011-ae753f144f99": {
       "grove_enabled": true,
-      "timestamp": 1772733400800
+      "timestamp": 1773053599942
     }
   },
   "s1mAccessCache": {
@@ -1248,16 +1252,16 @@
       "lastUsedAt": 1769624924782
     },
     "pr-open": {
-      "usageCount": 24,
-      "lastUsedAt": 1772717407890
+      "usageCount": 27,
+      "lastUsedAt": 1773064585933
     },
     "pr-comments": {
       "usageCount": 1,
       "lastUsedAt": 1769696602643
     },
     "pr-analyse-comments": {
-      "usageCount": 18,
-      "lastUsedAt": 1772655255235
+      "usageCount": 19,
+      "lastUsedAt": 1772826551985
     },
     "solid-queue-failures": {
       "usageCount": 5,
@@ -1284,8 +1288,8 @@
       "lastUsedAt": 1772742564122
     },
     "create-react-component": {
-      "usageCount": 1,
-      "lastUsedAt": 1772745220311
+      "usageCount": 2,
+      "lastUsedAt": 1772825407270
     },
     "brainstorming": {
       "usageCount": 1,
@@ -1296,7 +1300,7 @@
   "codeDiffFooterEnabled": true,
   "clientDataCache": {
     "data": {},
-    "timestamp": 1772730285416
+    "timestamp": 1773065133974
   },
   "s1mNonSubscriberAccessCache": {
     "00e9fab5-5b8d-44e3-b761-5ee8c7c8d11c": {
@@ -1305,16 +1309,6 @@
     }
   },
   "subscriptionNoticeCount": 1,
-  "oauthAccount": {
-    "accountUuid": "faa1a555-ed08-469b-8011-ae753f144f99",
-    "emailAddress": "regis_hattori@yahoo.com.br",
-    "organizationUuid": "b478bcf9-a655-4359-bb6b-1e4482804b08",
-    "hasExtraUsageEnabled": true,
-    "billingType": "stripe_subscription",
-    "accountCreatedAt": "2025-11-03T20:00:55.328549Z",
-    "subscriptionCreatedAt": "2026-01-28T12:00:55.092926Z",
-    "displayName": "Regis"
-  },
   "anonymousId": "claudecode.v1.ed2da4ba-0213-48e7-a304-4801d3a6df7a",
   "hasShownOpus46Notice": {
     "b478bcf9-a655-4359-bb6b-1e4482804b08": true
@@ -1381,5 +1375,18 @@
       ],
       "env": {}
     }
-  }
+  },
+  "oauthAccount": {
+    "accountUuid": "faa1a555-ed08-469b-8011-ae753f144f99",
+    "emailAddress": "regis_hattori@yahoo.com.br",
+    "organizationUuid": "b478bcf9-a655-4359-bb6b-1e4482804b08",
+    "hasExtraUsageEnabled": true,
+    "billingType": "stripe_subscription",
+    "accountCreatedAt": "2025-11-03T20:00:55.328549Z",
+    "subscriptionCreatedAt": "2026-01-28T12:00:55.092926Z",
+    "displayName": "Regis"
+  },
+  "claudeAiMcpEverConnected": [
+    "claude.ai Slack"
+  ]
 }
