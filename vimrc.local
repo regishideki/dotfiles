@@ -235,3 +235,45 @@ highlight Directory ctermfg=cyan guifg=cyan
 highlight NERDTreeDir ctermfg=cyan guifg=cyan
 highlight NERDTreeOpenable ctermfg=green guifg=green
 highlight NERDTreeClosable ctermfg=green guifg=green
+
+" Abrir arquivo sob o cursor no Preview (macOS) — funciona no NERDTree e em buffers normais
+function! OpenInPreview()
+  if &filetype ==# 'nerdtree'
+    let node = g:NERDTreeFileNode.GetSelected()
+    if node isnot# {}
+      silent execute '!open ' . shellescape(node.path.str())
+    endif
+  else
+    silent execute '!open ' . shellescape(expand('%:p'))
+  endif
+endfunction
+
+nnoremap <leader>oi :call OpenInPreview()<CR>
+
+" Colar imagem do clipboard em diretório selecionado no NERDTree (requer: brew install pngpaste)
+function! NERDTreePasteImage()
+  let node = g:NERDTreeFileNode.GetSelected()
+  if node isnot# {}
+    let dir = node.path.isDirectory ? node.path.str() : fnamemodify(node.path.str(), ':h')
+    let filename = input('Nome do arquivo (com extensão, ex: imagem.png): ')
+    if filename != ''
+      let filepath = dir . '/' . filename
+      call system('pngpaste ' . shellescape(filepath))
+      if v:shell_error == 0
+        echo 'Salvo: ' . filepath
+        call b:NERDTree.root.refresh()
+        call NERDTreeRender()
+      else
+        echohl ErrorMsg | echo 'Erro: não há imagem no clipboard ou pngpaste não está instalado.' | echohl None
+      endif
+    endif
+  endif
+endfunction
+
+augroup NERDTreePaste
+  autocmd!
+  autocmd FileType nerdtree call NERDTreeAddMenuItem({
+        \ 'text': '(p)aste image from clipboard',
+        \ 'shortcut': 'p',
+        \ 'callback': 'NERDTreePasteImage'})
+augroup END

@@ -1,5 +1,5 @@
 {
-  "numStartups": 94,
+  "numStartups": 95,
   "installMethod": "native",
   "autoUpdates": false,
   "theme": "light",
@@ -21,7 +21,7 @@
     "prompt-queue": 27,
     "enter-to-steer-in-relatime": 82,
     "todo-list": 82,
-    "ide-upsell-external-terminal": 91,
+    "ide-upsell-external-terminal": 95,
     "install-github-app": 94,
     "install-slack-app": 2,
     "drag-and-drop-images": 94,
@@ -29,7 +29,7 @@
     "double-esc-code-restore": 94,
     "default-permission-mode-config": 2,
     "continue": 94,
-    "shift-tab": 84,
+    "shift-tab": 94,
     "image-paste": 82,
     "desktop-app": 94,
     "web-app": 83,
@@ -39,7 +39,7 @@
     "permissions": 93,
     "rename-conversation": 87,
     "custom-commands": 88,
-    "frontend-design-plugin": 91,
+    "frontend-design-plugin": 94,
     "overage-promo": 59,
     "git-worktrees": 93,
     "feedback-command": 89
@@ -186,7 +186,7 @@
   "opusProMigrationComplete": true,
   "thinkingMigrationComplete": true,
   "cachedChromeExtensionInstalled": true,
-  "changelogLastFetched": 1773069427186,
+  "changelogLastFetched": 1773080599611,
   "autoUpdatesProtectedForNative": true,
   "claudeCodeFirstTokenDate": "2026-01-28T12:02:58.240589Z",
   "hasCompletedOnboarding": true,
@@ -810,31 +810,62 @@
         "generate_pei_suggestion.py"
       ],
       "exampleFilesGeneratedAt": 1773063108401,
-      "lastCost": 0,
-      "lastAPIDuration": 0,
-      "lastAPIDurationWithoutRetries": 0,
-      "lastToolDuration": 0,
-      "lastDuration": 244206,
-      "lastLinesAdded": 0,
+      "lastCost": 2.5677662499999996,
+      "lastAPIDuration": 481618,
+      "lastAPIDurationWithoutRetries": 480232,
+      "lastToolDuration": 53423,
+      "lastDuration": 1146088356,
+      "lastLinesAdded": 111,
       "lastLinesRemoved": 0,
-      "lastTotalInputTokens": 0,
-      "lastTotalOutputTokens": 0,
-      "lastTotalCacheCreationInputTokens": 0,
-      "lastTotalCacheReadInputTokens": 0,
+      "lastTotalInputTokens": 49753,
+      "lastTotalOutputTokens": 26074,
+      "lastTotalCacheCreationInputTokens": 194407,
+      "lastTotalCacheReadInputTokens": 1444901,
       "lastTotalWebSearchRequests": 0,
-      "lastFpsAverage": 7.05,
-      "lastFpsLow1Pct": 170.53,
-      "lastModelUsage": {},
-      "lastSessionId": "4d0f77ee-6a4c-4403-8168-9736e744b636",
+      "lastFpsAverage": 0.06,
+      "lastFpsLow1Pct": 32.56,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 48047,
+          "outputTokens": 1399,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 10035,
+          "webSearchRequests": 0,
+          "costUSD": 0.06758575
+        },
+        "claude-sonnet-4-6": {
+          "inputTokens": 1706,
+          "outputTokens": 24675,
+          "cacheReadInputTokens": 1444901,
+          "cacheCreationInputTokens": 184372,
+          "webSearchRequests": 0,
+          "costUSD": 2.5001805
+        }
+      },
+      "lastSessionId": "4f43901b-3902-4550-914f-e1162c914ac4",
       "hasCompletedProjectOnboarding": true,
       "lastSessionMetrics": {
-        "frame_duration_ms_count": 1718,
-        "frame_duration_ms_min": 0.0353330000070855,
-        "frame_duration_ms_max": 58.58162500000253,
-        "frame_duration_ms_avg": 0.8235863981376211,
-        "frame_duration_ms_p50": 0.5546040000044741,
-        "frame_duration_ms_p95": 1.2080143000093808,
-        "frame_duration_ms_p99": 5.766643070000748
+        "frame_duration_ms_count": 67114,
+        "frame_duration_ms_min": 0.06329202651977539,
+        "frame_duration_ms_max": 1543.018834002316,
+        "frame_duration_ms_avg": 2.586808538096194,
+        "frame_duration_ms_p50": 1.7286250001052395,
+        "frame_duration_ms_p95": 2.9480892498278988,
+        "frame_duration_ms_p99": 6.4788475991925125,
+        "pre_tool_hook_duration_ms_count": 66,
+        "pre_tool_hook_duration_ms_min": 0,
+        "pre_tool_hook_duration_ms_max": 50,
+        "pre_tool_hook_duration_ms_avg": 2.8181818181818183,
+        "pre_tool_hook_duration_ms_p50": 2,
+        "pre_tool_hook_duration_ms_p95": 4,
+        "pre_tool_hook_duration_ms_p99": 34.399999999999864,
+        "hook_duration_ms_count": 6,
+        "hook_duration_ms_min": 0,
+        "hook_duration_ms_max": 1,
+        "hook_duration_ms_avg": 0.3333333333333333,
+        "hook_duration_ms_p50": 0,
+        "hook_duration_ms_p95": 1,
+        "hook_duration_ms_p99": 1
       }
     },
     "/Users/regishattori/workspace/genial/clinical-language-models-extra": {
@@ -1211,8 +1242,8 @@
       "/Users/regishattori/workspace/genial/data-kernel"
     ],
     "genialcare/clinical-language-models": [
-      "/Users/regishattori/workspace/genial/clinical-language-models-extra",
-      "/Users/regishattori/workspace/genial/clinical-language-models"
+      "/Users/regishattori/workspace/genial/clinical-language-models",
+      "/Users/regishattori/workspace/genial/clinical-language-models-extra"
     ],
     "genialcare/objectives-hierarchy": [
       "/Users/regishattori/workspace/genial/objectives-hierarchy"
@@ -1234,7 +1265,7 @@
       "timestamp": 1771002612208
     }
   },
-  "lastReleaseNotesSeen": "2.1.68",
+  "lastReleaseNotesSeen": "2.1.71",
   "hasShownOpus45Notice": {
     "b478bcf9-a655-4359-bb6b-1e4482804b08": true,
     "00e9fab5-5b8d-44e3-b761-5ee8c7c8d11c": true
@@ -1260,8 +1291,8 @@
       "lastUsedAt": 1769696602643
     },
     "pr-analyse-comments": {
-      "usageCount": 19,
-      "lastUsedAt": 1772826551985
+      "usageCount": 21,
+      "lastUsedAt": 1773075146898
     },
     "solid-queue-failures": {
       "usageCount": 5,
@@ -1300,7 +1331,7 @@
   "codeDiffFooterEnabled": true,
   "clientDataCache": {
     "data": {},
-    "timestamp": 1773065133974
+    "timestamp": 1773080198454
   },
   "s1mNonSubscriberAccessCache": {
     "00e9fab5-5b8d-44e3-b761-5ee8c7c8d11c": {
@@ -1376,6 +1407,9 @@
       "env": {}
     }
   },
+  "claudeAiMcpEverConnected": [
+    "claude.ai Slack"
+  ],
   "oauthAccount": {
     "accountUuid": "faa1a555-ed08-469b-8011-ae753f144f99",
     "emailAddress": "regis_hattori@yahoo.com.br",
@@ -1384,9 +1418,9 @@
     "billingType": "stripe_subscription",
     "accountCreatedAt": "2025-11-03T20:00:55.328549Z",
     "subscriptionCreatedAt": "2026-01-28T12:00:55.092926Z",
-    "displayName": "Regis"
-  },
-  "claudeAiMcpEverConnected": [
-    "claude.ai Slack"
-  ]
+    "displayName": "Regis",
+    "organizationRole": "admin",
+    "workspaceRole": null,
+    "organizationName": "regis_hattori@yahoo.com.br's Organization"
+  }
 }
