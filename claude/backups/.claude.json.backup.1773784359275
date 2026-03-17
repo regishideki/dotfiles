@@ -45,7 +45,7 @@
     "feedback-command": 89,
     "color-when-multi-clauding": 99
   },
-  "promptQueueUseCount": 206,
+  "promptQueueUseCount": 213,
   "btwUseCount": 1,
   "autoConnectIde": true,
   "cachedGrowthBookFeatures": {
@@ -204,7 +204,11 @@
     "tengu_copper_wren": false,
     "tengu_pewter_ledger": "OFF",
     "tengu_pewter_gull": true,
-    "tengu_collage_kaleidoscope": true
+    "tengu_collage_kaleidoscope": true,
+    "tengu_bridge_min_version": {
+      "minVersion": "0.0.0"
+    },
+    "tengu_bridge_poll_interval_ms": 0
   },
   "userID": "d97b0bb4bffa6447abf7d3c7ada0af4f7bd5a320e013f429e4912bd2ecc20d2c",
   "firstStartTime": "2026-01-28T11:55:19.466Z",
@@ -213,7 +217,7 @@
   "opusProMigrationComplete": true,
   "thinkingMigrationComplete": true,
   "cachedChromeExtensionInstalled": true,
-  "changelogLastFetched": 1773697097317,
+  "changelogLastFetched": 1773758294275,
   "autoUpdatesProtectedForNative": true,
   "claudeCodeFirstTokenDate": "2026-01-28T12:02:58.240589Z",
   "hasCompletedOnboarding": true,
@@ -766,7 +770,7 @@
       "enabledMcpjsonServers": [],
       "disabledMcpjsonServers": [],
       "hasTrustDialogAccepted": true,
-      "projectOnboardingSeenCount": 47,
+      "projectOnboardingSeenCount": 53,
       "hasClaudeMdExternalIncludesApproved": false,
       "hasClaudeMdExternalIncludesWarningShown": false,
       "reactVulnerabilityCache": {
@@ -1250,7 +1254,7 @@
       "enabledMcpjsonServers": [],
       "disabledMcpjsonServers": [],
       "hasTrustDialogAccepted": false,
-      "projectOnboardingSeenCount": 2,
+      "projectOnboardingSeenCount": 3,
       "hasClaudeMdExternalIncludesApproved": false,
       "hasClaudeMdExternalIncludesWarningShown": false,
       "exampleFiles": [
@@ -1318,7 +1322,7 @@
       "timestamp": 1771002612208
     }
   },
-  "lastReleaseNotesSeen": "2.1.76",
+  "lastReleaseNotesSeen": "2.1.63",
   "hasShownOpus45Notice": {
     "b478bcf9-a655-4359-bb6b-1e4482804b08": true,
     "00e9fab5-5b8d-44e3-b761-5ee8c7c8d11c": true
@@ -1384,12 +1388,16 @@
       "lastUsedAt": 1773669101655
     },
     "pr-to-slack": {
-      "usageCount": 2,
-      "lastUsedAt": 1773680350337
+      "usageCount": 3,
+      "lastUsedAt": 1773759928590
     },
     "create-rake": {
       "usageCount": 1,
       "lastUsedAt": 1773678350705
+    },
+    "loop": {
+      "usageCount": 1,
+      "lastUsedAt": 1773758421112
     }
   },
   "slackAppInstallCount": 1,
@@ -1495,5 +1503,6 @@
   },
   "voiceNoticeSeenCount": 2,
   "voiceLangHintShownCount": 1,
-  "voiceLangHintLastLanguage": "pt"
+  "voiceLangHintLastLanguage": "pt",
+  "remoteDialogSeen": true
 }

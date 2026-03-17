@@ -11,6 +11,7 @@
       "Bash(gh pr list:*)",
       "Bash(gh pr review:*)",
       "Bash(gh pr view:*)",
+      "Bash(gh run:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git pull:*)",
@@ -26,6 +27,8 @@
       "Bash(timeout 120 head:*)",
       "Bash(xargs:*)",
       "Web Search(*)",
+      "mcp__claude_ai_Slack__slack_search_channels",
+      "mcp__claude_ai_Slack__slack_send_message",
       "Fetch(*)"
     ]
   }

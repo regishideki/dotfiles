@@ -124,6 +124,18 @@ O prefixo `public_` vem do schema PostgreSQL. O sufixo é o nome exato da tabela
 
 ## Passo 4 — Criar os arquivos
 
+### Convenção de ordem das colunas
+
+Siga sempre esta ordem em **todos** os arquivos (schema do events, `columns:` do config, `SELECT` da tabela materializada, resultado esperado e payloads do teste):
+
+1. **IDs**: `id` primeiro, depois FKs (`protocol_item_id`, `skill_id`, `tenant_id`, etc.)
+2. **Atributos**: demais campos descritivos/funcionais da entidade (`name`, `description`, `status`, `session_type`, `tags`, etc.)
+3. **Timestamps**: sempre por último — `created_at`, `updated_at`, e variantes como `discarded_at`, `completed_at`, `completed_by_id`
+
+Se um campo não se encaixar claramente em nenhum grupo, coloque-o entre os atributos (grupo 2), antes dos timestamps.
+
+---
+
 Para cada entidade, crie dentro do domínio correspondente:
 
 ```
@@ -265,10 +277,82 @@ Erros mais comuns:
 make dataform-run
 ```
 
-Para rodar apenas as novas tabelas via tags:
+Para rodar apenas as novas tabelas via tags (recomendado — mais rápido e seguro):
 
 ```bash
 make dataform-partial-run tags=<tag>
+```
+
+### Verificar o schema da tabela no BigQuery
+
+Após o pipeline rodar com sucesso, confirme que todas as colunas foram criadas corretamente com os tipos esperados:
+
+```bash
+bq query --project_id=<bq-project> --use_legacy_sql=false \
+  'SELECT column_name, data_type FROM `<bq-project>`.<schema>.INFORMATION_SCHEMA.COLUMNS WHERE table_name = "<nome>" ORDER BY ordinal_position'
+```
+
+Exemplo real (supervision, tabela `library_objectives`):
+
+```bash
+bq query --project_id=supervision-development-9a7j --use_legacy_sql=false \
+  'SELECT column_name, data_type FROM `supervision-development-9a7j`.intervention.INFORMATION_SCHEMA.COLUMNS WHERE table_name = "library_objectives" ORDER BY ordinal_position'
+```
+
+Resultado esperado: todas as colunas listadas com tipos corretos, **na ordem definida no `.sqlx`** (IDs → Atributos → Timestamps).
+
+Exemplo real (supervision, `library_objectives`, adicionando `session_type` e `tags`):
+
+```bash
+bq query --project_id=supervision-development-9a7j --use_legacy_sql=false \
+  'SELECT column_name, data_type
+   FROM `supervision-development-9a7j`.intervention.INFORMATION_SCHEMA.COLUMNS
+   WHERE table_name = "library_objectives"
+   ORDER BY ordinal_position'
+```
+
+### Verificar se há dados nas novas colunas
+
+Após confirmar o schema, cheque se as novas colunas já possuem dados populados no ambiente de dev:
+
+```bash
+bq query --project_id=<bq-project> --use_legacy_sql=false \
+  'SELECT
+     COUNT(*) AS total,
+     COUNTIF(<nova_coluna_1> IS NOT NULL) AS with_<nova_coluna_1>,
+     COUNTIF(ARRAY_LENGTH(<nova_coluna_array>) > 0) AS with_<nova_coluna_array>
+   FROM `<bq-project>`.<schema>.<nome>'
+```
+
+Exemplo real:
+
+```bash
+bq query --project_id=supervision-development-9a7j --use_legacy_sql=false \
+  'SELECT
+     COUNT(*) AS total,
+     COUNTIF(session_type IS NOT NULL) AS with_session_type,
+     COUNTIF(ARRAY_LENGTH(tags) > 0) AS with_tags
+   FROM `supervision-development-9a7j`.intervention.library_objectives'
+```
+
+É normal que `total > 0` mas os contadores das novas colunas sejam baixos ou zero — significa que os dados do core ainda não foram preenchidos. Para confirmar que os que existem chegaram certos, veja uma amostra:
+
+```bash
+bq query --project_id=<bq-project> --use_legacy_sql=false \
+  'SELECT id, <nova_coluna_1>, <nova_coluna_array>
+   FROM `<bq-project>`.<schema>.<nome>
+   WHERE <nova_coluna_1> IS NOT NULL OR ARRAY_LENGTH(<nova_coluna_array>) > 0
+   LIMIT 5'
+```
+
+Exemplo real:
+
+```bash
+bq query --project_id=supervision-development-9a7j --use_legacy_sql=false \
+  'SELECT id, session_type, tags
+   FROM `supervision-development-9a7j`.intervention.library_objectives
+   WHERE session_type IS NOT NULL OR ARRAY_LENGTH(tags) > 0
+   LIMIT 5'
 ```
 
 ---
