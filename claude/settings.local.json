@@ -19,17 +19,14 @@
       "Bash(kubectl cp:*)",
       "Bash(kubectl exec:*)",
       "Bash(kubectx:*)",
-      "Bash(make help:*)",
-      "Bash(make lint-fix:*)",
-      "Bash(make lint:fix:*)",
-      "Bash(make pack-check:*)",
-      "Bash(make single-test:*)",
       "Bash(make:*)",
       "Bash(rake_file=\"lib/tasks/pei/create_missing_library_objective_prerequisites.rake\")",
       "Bash(rake_name=\"pei_track:create_missing_library_objective_prerequisites\")",
       "Bash(standardrb --fix:*)",
       "Bash(timeout 120 head:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Web Search(*)",
+      "Fetch(*)"
     ]
   }
 }
