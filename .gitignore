@@ -1,3 +1,12 @@
 !bin
 vim/bundle/
 snippet.txt
+
+# Claude Code - auto-generated files
+claude/backups/
+claude/sessions/
+claude/mcp-needs-auth-cache.json
+claude/plugins/blocklist.json
+claude/plugins/known_marketplaces.json
+claude/policy-limits.json
+claude/settings.local.json

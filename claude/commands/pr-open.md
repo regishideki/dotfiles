@@ -20,6 +20,6 @@ Após abrir o PR, crie os seguites jobs periódicos:
 - verificar CI de 5 em 5 minutos até completar o ciclo com sucesso
   - verifique status do CI
     - se estiver OK:
-        - executar comando `pr-to-slack`
         - parar job
     - se não estiver OK, verifique o que tem de errado, corrija e dê push
+      - se a falha for em um arquivo não relacionado às mudanças do PR, tente atualizar a branch com o main (`git fetch origin main && git merge origin/main`) — pode ser que o main tenha a correção. Se o merge resolver, dê push.

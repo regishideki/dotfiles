@@ -1,53 +1,54 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep:*)",
-      "Bash(yarn test:*)",
-      "Bash(echo:*)",
-      "Bash(xargs:*)",
-      "Bash(done)",
-      "Bash(git add:*)",
-      "Bash(git checkout:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(git pull:*)",
-      "Bash(git stash:*)",
-      "Bash(git cherry-pick:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh pr list:*)",
-      "Bash(gh pr comment:*)",
-      "Bash(gh pr review:*)",
-      "Bash(gh api:*)",
-      "Bash(make:*)",
-      "Bash(make single-test:*)",
-      "Bash(make lint:fix:*)",
-      "Bash(make lint-fix:*)",
-      "Bash(make help:*)",
-      "Bash(make pack-check:*)",
-      "Bash(standardrb --fix:*)",
+      "Bash(chmod:*)",
       "Bash(docker compose exec:*)",
       "Bash(docker compose ps:*)",
-      "Bash(timeout 120 head:*)",
-      "Bash(kubectl pod enter production core web psql '$DATABASE_URL')",
-      "Bash(git revert:*)",
-      "Bash(kubectl get:*)",
-      "Bash(kubectl describe:*)",
-      "Bash(kubectl logs:*)",
-      "WebFetch(domain:*)",
-      "Bash(npx vitest:*)",
-      "Bash(yarn types:*)",
-      "Bash(yarn lint:fix:*)",
-      "Bash(source ~/.nvm/nvm.sh)",
-      "Bash(nvm use:*)",
-      "WebSearch",
+      "Bash(done)",
+      "Bash(echo:*)",
       "Bash(find:*)",
+      "Bash(gh api:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr review:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(git push:*)",
+      "Bash(git revert:*)",
+      "Bash(git stash:*)",
+      "Bash(grep:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl logs:*)",
+      "Bash(kubectl pod enter production core web psql '$DATABASE_URL')",
+      "Bash(make help:*)",
+      "Bash(make lint-fix:*)",
+      "Bash(make lint:fix:*)",
+      "Bash(make pack-check:*)",
+      "Bash(make single-test:*)",
+      "Bash(make:*)",
       "Bash(node:*)",
-      "Read(*)"
+      "Bash(npx vitest:*)",
+      "Bash(nvm use:*)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(standardrb --fix:*)",
+      "Bash(timeout 120 head:*)",
+      "Bash(xargs:*)",
+      "Bash(yarn lint:fix:*)",
+      "Bash(yarn test:*)",
+      "Bash(yarn types:*)",
+      "Read(*)",
+      "WebFetch(domain:*)",
+      "WebSearch"
     ],
     "defaultMode": "default"
   },
-  "model": "sonnet[1m]",
+  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
     "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // empty'); git_branch=\"\"; if git -C \"$cwd\" rev-parse --git-dir > /dev/null 2>&1; then git_branch=$(git -C \"$cwd\" branch --show-current 2>/dev/null); [ -n \"$git_branch\" ] && git_branch=\" ($git_branch)\"; fi; status_line=\"${model} | ${cwd}${git_branch}\"; if [ -n \"$remaining\" ]; then remaining_int=$(printf \"%.0f\" \"$remaining\"); status_line=\"${status_line} | Context: ${remaining_int}%\"; fi; echo \"$status_line\""
@@ -64,6 +65,19 @@
         "repo": "anthropics/skills"
       }
     }
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); FILE_PATH=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // empty'); if [[ \"$FILE_PATH\" == *\"settings.local.json\" ]]; then $HOME/dotfiles/bin/claude-merge-local-permissions \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\" >&2; fi; exit 0"
+          }
+        ]
+      }
+    ]
   },
   "language": "pt-BR",
   "voiceEnabled": true

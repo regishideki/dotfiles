@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Merges uncommitted permissions from .claude/settings.local.json into ~/.claude/settings.json
+# Then restores settings.local.json to its git-committed state.
+# Usage: claude-merge-local-permissions [path-to-project-root]
+
+set -euo pipefail
+
+PROJECT_ROOT="${1:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+LOCAL_SETTINGS="$PROJECT_ROOT/.claude/settings.local.json"
+GLOBAL_SETTINGS="$HOME/.claude/settings.json"
+
+# Exit silently if no local settings file
+[ -f "$LOCAL_SETTINGS" ] || exit 0
+
+# Get committed version of settings.local.json
+COMMITTED=$(git -C "$PROJECT_ROOT" show HEAD:.claude/settings.local.json 2>/dev/null || echo '{"permissions":{"allow":[]}}')
+
+# Get current (on-disk) version
+CURRENT=$(cat "$LOCAL_SETTINGS")
+
+# Extract permission arrays
+COMMITTED_PERMS=$(echo "$COMMITTED" | jq -r '.permissions.allow // [] | .[]' 2>/dev/null || true)
+CURRENT_PERMS=$(echo "$CURRENT" | jq -r '.permissions.allow // [] | .[]' 2>/dev/null || true)
+
+# Find new permissions (in current but not in committed)
+NEW_PERMS=()
+while IFS= read -r perm; do
+  [ -z "$perm" ] && continue
+  if ! echo "$COMMITTED_PERMS" | grep -qxF "$perm"; then
+    NEW_PERMS+=("$perm")
+  fi
+done <<< "$CURRENT_PERMS"
+
+# Exit if nothing new
+[ ${#NEW_PERMS[@]} -eq 0 ] && exit 0
+
+# Read global settings
+GLOBAL=$(cat "$GLOBAL_SETTINGS")
+
+# Add new permissions to global (skip duplicates), then sort
+UPDATED_GLOBAL="$GLOBAL"
+for perm in "${NEW_PERMS[@]}"; do
+  # Check if already in global
+  if ! echo "$UPDATED_GLOBAL" | jq -e --arg p "$perm" '.permissions.allow | index($p)' > /dev/null 2>&1; then
+    UPDATED_GLOBAL=$(echo "$UPDATED_GLOBAL" | jq --arg p "$perm" '.permissions.allow += [$p]')
+  fi
+done
+
+# Sort the allow list
+UPDATED_GLOBAL=$(echo "$UPDATED_GLOBAL" | jq '.permissions.allow |= sort')
+
+# Write global settings
+echo "$UPDATED_GLOBAL" | jq '.' > "$GLOBAL_SETTINGS"
+
+# Restore local settings to committed state
+git -C "$PROJECT_ROOT" checkout HEAD -- .claude/settings.local.json 2>/dev/null || true
+
+# Report
+echo "claude-merge-local-permissions: moved ${#NEW_PERMS[@]} permission(s) to global settings:"
+for perm in "${NEW_PERMS[@]}"; do
+  echo "  + $perm"
+done
