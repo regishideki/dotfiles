@@ -9,7 +9,11 @@
       "Bash(~/.claude/skills/test-file.md)",
       "Bash(~/.claude/skills/test-auto/SKILL.md)",
       "Bash(git config:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(nvim --version)",
+      "Bash(brew install:*)",
+      "Bash(curl:*)",
+      "Bash(nvim:*)"
     ]
   }
 }

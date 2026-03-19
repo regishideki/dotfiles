@@ -2,11 +2,16 @@
 - install chrome, dropbox
 - generate a ssh key to add to github (https://help.github.com/articles/generating-an-ssh-key)
 - sudo apt-get install git vim docker docker-compose
-- install vim with clipboard (for more details: http://vimcasts.org/blog/2013/11/getting-vim-with-clipboard-support/)
-  - if in Ubuntu: apt-get install vim-gnome
-  - if MacOS: brew install vim 
-- install [vim-plug](https://github.com/junegunn/vim-plug) and [pathogen](https://github.com/tpope/vim-pathogen)
-  - if MacOS install brew
+- install neovim >= 0.11.6 (migrated from vim — see `NEOVIM_MIGRATION_PLAN.md` for details)
+  - if MacOS: `brew install neovim`
+  - if Ubuntu: `sudo apt-get install neovim`
+  - config lives at `~/.config/nvim/init.vim` and sources the existing `~/.vimrc`
+- install [vim-plug](https://github.com/junegunn/vim-plug) for neovim:
+  ```
+  curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs \
+    https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  nvim +PlugInstall +qall
+  ```
 - install rvm, tmux (funciona no 3.3a)
 - install zsh + oh-my-zsh https://github.com/robbyrussell/oh-my-zsh and use zsh as default shell
 - install https://github.com/sindresorhus/pure

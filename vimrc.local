@@ -85,9 +85,14 @@ if exists('$TMUX')
     endif
   endfunction
 
-  let previous_title = substitute(system("tmux display-message -p '#{pane_title}'"), '\n', '', '')
-  let &t_ti = "\<Esc>]2;vim\<Esc>\\" . &t_ti
-  let &t_te = "\<Esc>]2;". previous_title . "\<Esc>\\" . &t_te
+  if has('nvim')
+    let &titlestring = 'nvim'
+    set title
+  else
+    let previous_title = substitute(system("tmux display-message -p '#{pane_title}'"), '\n', '', '')
+    let &t_ti = "\<Esc>]2;vim\<Esc>\\" . &t_ti
+    let &t_te = "\<Esc>]2;". previous_title . "\<Esc>\\" . &t_te
+  endif
 
   nnoremap <silent> <C-h> :call TmuxOrSplitSwitch('h', 'L')<cr>
   nnoremap <silent> <C-j> :call TmuxOrSplitSwitch('j', 'D')<cr>
@@ -98,8 +103,7 @@ endif
 " reduce default opdate time from 4s to 250ms (update signs in gitgutter, for example)
 set updatetime=250
 
-" install pathogen
-execute pathogen#infect()
+" vim-plug já gerencia os plugins, pathogen removido na migração para neovim
 syntax on
 filetype plugin indent on
 
@@ -158,7 +162,7 @@ nnoremap <leader><leader> :A<CR>
 nnoremap src :source $MYVIMRC<cr>
 
 " Use Gundo to manage history
-nnoremap <F5> :GundoToggle<CR>
+nnoremap <F5> :MundoToggle<CR>
 
 " delete fugitive buffers automatically
 autocmd BufReadPost fugitive://* set bufhidden=delete
