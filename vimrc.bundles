@@ -79,6 +79,9 @@ Plug 'yssl/QFEnter'
 Plug 'sbdchd/neoformat'
 Plug 'dense-analysis/ale'
 
+" Markdown preview with Mermaid support
+Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug'] }
+
 if filereadable(expand("~/.vimrc.bundles.local"))
   source ~/.vimrc.bundles.local
 endif

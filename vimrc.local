@@ -5,7 +5,7 @@ map <Leader>h :noh<cr>
 set textwidth=120
 set colorcolumn=
 
-set shell=bash\ -l
+set shell=/bin/zsh
 
 nnoremap <Leader>w :w!<CR>
 nnoremap <Leader>q :q!<CR>
@@ -102,6 +102,17 @@ endif
 
 " reduce default opdate time from 4s to 250ms (update signs in gitgutter, for example)
 set updatetime=250
+
+" Auto-reload arquivos alterados externamente (ex: por agentes de IA)
+set autoread
+augroup auto_reload
+  autocmd!
+  autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * if mode() != 'c' | silent! checktime | endif
+  autocmd FileChangedShell * silent! edit
+augroup END
+if has('nvim')
+  lua vim.loop.new_timer():start(1000, 1000, vim.schedule_wrap(function() pcall(vim.cmd, 'silent! checktime') end))
+endif
 
 " vim-plug já gerencia os plugins, pathogen removido na migração para neovim
 syntax on
@@ -228,6 +239,11 @@ set background=dark
 
 " Desabilitar spell check
 set nospell
+
+" Markdown Preview
+let g:mkdp_auto_close = 1
+let g:mkdp_theme = 'dark'
+nnoremap <leader>mm :MarkdownPreviewToggle<CR>
 " Configurar spell check para português e inglês
 " set spelllang=pt,en
 
