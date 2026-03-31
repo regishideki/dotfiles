@@ -82,6 +82,11 @@ Plug 'dense-analysis/ale'
 " Markdown preview with Mermaid support
 Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug'] }
 
+" Image rendering in Neovim (requires iTerm2 + tmux passthrough)
+if has('nvim')
+  Plug '3rd/image.nvim'
+endif
+
 if filereadable(expand("~/.vimrc.bundles.local"))
   source ~/.vimrc.bundles.local
 endif

@@ -2,7 +2,12 @@ Se ainda não rodou ainda, rode o comando de lint para corrigir os erros de lint
 Se for problema em um arquivo de snippets, não tem problema pois ele está no gitignore.
 
 Caso tenha feito alguma migração no banco, rode o comando de migração para
-atualizaro schema do banco.
+atualizar o schema do banco.
+
+Antes de abrir o PR, verifique se há conflitos com a main:
+1. Rode `git fetch origin main && git merge origin/main`
+2. Se houver conflitos, resolva-os e commite o merge
+3. Faça push das mudanças
 
 Veja se já está na branch certa. Se não estiver, crie uma nova branch e faça o commit nela.
 Agora, abra um Pull Request como Draft com "regishideki" como assignee e "GenialCare/capacidade-clinica" como reviewer.

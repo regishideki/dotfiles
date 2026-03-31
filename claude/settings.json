@@ -46,9 +46,22 @@
       "WebFetch(domain:*)",
       "WebSearch"
     ],
-    "defaultMode": "default"
+    "defaultMode": "auto"
   },
   "model": "opus[1m]",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); FILE_PATH=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // empty'); if [[ \"$FILE_PATH\" == *\"settings.local.json\" ]]; then $HOME/dotfiles/bin/claude-merge-local-permissions \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\" >&2; fi; exit 0"
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // empty'); git_branch=\"\"; if git -C \"$cwd\" rev-parse --git-dir > /dev/null 2>&1; then git_branch=$(git -C \"$cwd\" branch --show-current 2>/dev/null); [ -n \"$git_branch\" ] && git_branch=\" ($git_branch)\"; fi; status_line=\"${model} | ${cwd}${git_branch}\"; if [ -n \"$remaining\" ]; then remaining_int=$(printf \"%.0f\" \"$remaining\"); status_line=\"${status_line} | Context: ${remaining_int}%\"; fi; echo \"$status_line\""
@@ -66,19 +79,7 @@
       }
     }
   },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "INPUT=$(cat); FILE_PATH=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // empty'); if [[ \"$FILE_PATH\" == *\"settings.local.json\" ]]; then $HOME/dotfiles/bin/claude-merge-local-permissions \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\" >&2; fi; exit 0"
-          }
-        ]
-      }
-    ]
-  },
   "language": "pt-BR",
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "skipAutoPermissionPrompt": true
 }

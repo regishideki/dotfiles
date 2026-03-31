@@ -224,6 +224,7 @@ export const MyComponent = ({ items, clinicalCaseId, onAction }: ComponentProps)
 ```
 
 **Regras de estilo:**
+- **Antes de usar qualquer componente Antd, consulte a API via skill `antd` (`antd info <Component> --format json`) — não confie na memória para props, tokens ou demos.**
 - Antd: NUNCA desestruturar — use `Typography.Title`, `Typography.Text`, `Input.TextArea`
 - Estilo via prop do componente quando disponível (`<Tag color="blue">`); senão CSS Modules
 - Para classes condicionais, use o utilitário `cn()` de `utils/styling`: `cn(styles.card, active && styles.cardActive)`

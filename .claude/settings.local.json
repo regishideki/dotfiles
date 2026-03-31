@@ -42,7 +42,11 @@
       "Bash(mdutil:*)",
       "Bash(/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -dump)",
       "Bash(brew uninstall:*)",
-      "Bash(bash install.sh)"
+      "Bash(bash install.sh)",
+      "Bash(tmux source-file:*)",
+      "Bash(tmux display-message:*)",
+      "Bash(tr ';' '\\\\n')",
+      "Bash(tmux set:*)"
     ]
   }
 }
