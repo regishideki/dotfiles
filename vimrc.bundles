@@ -78,6 +78,7 @@ Plug 'nelstrom/vim-textobj-rubyblock'
 Plug 'yssl/QFEnter'
 Plug 'sbdchd/neoformat'
 Plug 'dense-analysis/ale'
+Plug 'tpope/vim-obsession'
 
 " Markdown preview with Mermaid support
 Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug'] }
