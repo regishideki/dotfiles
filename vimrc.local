@@ -233,6 +233,7 @@ nnoremap <leader>cf :let @+=expand("%")<CR>:echo "Copied relative path: " . expa
 nnoremap <leader>cF :let @+=expand("%:p")<CR>:echo "Copied absolute path: " . expand("%:p")<CR>
 nnoremap <leader>cn :let @+=expand("%:t")<CR>:echo "Copied filename: " . expand("%:t")<CR>
 nnoremap <leader>cl :let @+=expand("%") . ":" . line(".")<CR>:echo "Copied: " . expand("%") . ":" . line(".")<CR>
+nnoremap <leader>ca :%y+<CR>:echo "Copied entire file to clipboard"<CR>
 
 " Melhorar legibilidade com fundo preto
 set background=dark
