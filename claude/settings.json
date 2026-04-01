@@ -51,7 +51,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus[1m]",
+  "model": "sonnet[1m]",
   "hooks": {
     "PostToolUse": [
       {
@@ -84,5 +84,6 @@
   },
   "language": "pt-BR",
   "voiceEnabled": true,
+  "autoDreamEnabled": true,
   "skipAutoPermissionPrompt": true
 }
