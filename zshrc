@@ -95,3 +95,6 @@ export PATH="$HOME/.local/bin:$PATH"
 export PATH="/Users/regishattori/.antigravity/antigravity/bin:$PATH"
 
 
+
+# deepwork: ~/bin no PATH
+export PATH="$HOME/bin:$PATH"

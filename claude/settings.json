@@ -63,6 +63,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/regishattori/dotfiles/claude/hooks/deepwork-session-check.sh"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {

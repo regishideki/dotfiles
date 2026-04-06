@@ -1,3 +1,5 @@
+Se estiver no projeto `core`, antes de cada commit, siga o command `/test-impact` para rodar os testes impactados pelas mudanças.
+
 Se ainda não rodou ainda, rode o comando de lint para corrigir os erros de linting. Provavelmente ele estará ou no Makefile ou no package.json.
 Se for problema em um arquivo de snippets, não tem problema pois ele está no gitignore.
 

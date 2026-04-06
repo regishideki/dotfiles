@@ -1,0 +1,1 @@
+/Users/regishattori/workspace/genial/deepwork/claude/hooks/deepwork-session-check.sh
