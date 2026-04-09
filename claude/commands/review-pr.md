@@ -2,9 +2,33 @@ Analise o código de um PR ou branch comparado com a main. Siga os passos abaixo
 
 ## 1. Identificar o alvo
 
-- Se foi passado um número de PR como argumento ($ARGUMENTS), use `gh pr view <número>` para obter os detalhes.
-- Se foi passado um nome de branch, use essa branch.
-- Se nenhum argumento foi passado, use a branch atual.
+Analise `$ARGUMENTS` para determinar o alvo:
+
+**Caso A — índice numérico simples** (ex: `3`)
+Se `$ARGUMENTS` for um número inteiro puro, leia `/tmp/claude-review-queue.json` e encontre a entrada com `index == $ARGUMENTS`. Isso resolve para `repo` e `number`. Exemplo:
+```bash
+cat /tmp/claude-review-queue.json | jq '.[] | select(.index == 3)'
+# → { "index": 3, "repo": "GenialCare/clinical-panel", "number": 456 }
+```
+Use `repo` e `number` como alvo cross-repo (ver abaixo).
+
+**Caso B — PR no repo atual** (ex: `123`)
+Se `$ARGUMENTS` for um número e você estiver dentro de um repositório git, trate como número de PR do repo atual. Use `gh pr view <número>`.
+
+**Caso C — PR cross-repo** (ex: `GenialCare/core#123` ou quando resolvido do Caso A)
+Quando o alvo é de outro repositório, clone em diretório temporário:
+```bash
+gh repo clone <owner/repo> /tmp/review-$(basename <repo>) -- --depth=1
+cd /tmp/review-$(basename <repo>)
+gh pr checkout <number>
+```
+Ao terminar a análise, remova o diretório: `rm -rf /tmp/review-$(basename <repo>)`.
+
+**Caso D — nome de branch**
+Se `$ARGUMENTS` for um nome de branch, use essa branch no repo atual.
+
+**Caso E — sem argumentos**
+Use a branch atual no repo atual.
 
 ## 2. Obter o diff e puxar a branch
 
