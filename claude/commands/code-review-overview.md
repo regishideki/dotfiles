@@ -6,11 +6,22 @@ Analise o código de um PR ou branch comparado com a main. Siga os passos abaixo
 - Se foi passado um nome de branch, use essa branch.
 - Se nenhum argumento foi passado, use a branch atual.
 
-## 2. Obter o diff
+## 2. Obter o diff e puxar a branch
 
 - Obtenha o diff completo comparado com a main:
   - Para PR: `gh pr diff <número>`
   - Para branch: `git diff origin/main...<branch>`
+
+- O diff sozinho nem sempre é suficiente. Quando precisar de contexto adicional — verificar se um padrão existe em arquivos similares, checar se há testes equivalentes para código não alterado, entender a estrutura ao redor de uma mudança — acesse a branch e leia os arquivos diretamente. Use **git worktree** para não interferir com trabalho em andamento na branch atual:
+  ```bash
+  # Criar worktree em diretório irmão
+  git worktree add ../$(basename $PWD)-review origin/<branch-do-pr>
+  # Analisar os arquivos no novo diretório
+  # Ao terminar, remover o worktree
+  git worktree remove ../$(basename $PWD)-review
+  ```
+  - Para descobrir o nome da branch do PR: `gh pr view <número> --json headRefName -q .headRefName`
+  - Se não houver WIP na branch atual, `gh pr checkout <número>` também funciona (mais simples), lembrando de voltar com `git checkout -` ao terminar.
 
 ## 3. Ler descrição do PR (se existir)
 
@@ -82,3 +93,7 @@ Dê sua opinião geral:
 - **Pediria mudanças** — há problemas que deveriam ser resolvidos antes do merge (liste-os)
 
 Seja pragmático. Foque em problemas reais que impactam manutenibilidade, legibilidade ou correção. Não seja pedante com questões puramente estilísticas que não afetam a qualidade do código.
+
+## 8. Aprovar (se aplicável)
+
+Se o veredito for "Aprovaria" ou "Aprovaria com sugestões" e o usuário pedir para aprovar, use `gh pr review <número> --repo <owner>/<repo> --approve` **sem body** — só a aprovação, sem comentários. A menos que o usuário peça explicitamente para incluir um comentário.
