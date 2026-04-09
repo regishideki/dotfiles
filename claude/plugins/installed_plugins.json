@@ -28,6 +28,15 @@
         "installedAt": "2026-03-05T18:05:58.043Z",
         "lastUpdated": "2026-03-05T18:05:58.043Z"
       }
+    ],
+    "ruby-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/regishattori/.claude/plugins/cache/claude-plugins-official/ruby-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-04-06T19:10:23.604Z",
+        "lastUpdated": "2026-04-06T19:10:23.604Z"
+      }
     ]
   }
 }

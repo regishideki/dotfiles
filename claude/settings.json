@@ -83,7 +83,8 @@
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,
     "example-skills@anthropic-agent-skills": true,
-    "playground@claude-plugins-official": true
+    "playground@claude-plugins-official": true,
+    "ruby-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
