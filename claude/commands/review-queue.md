@@ -6,18 +6,27 @@ Execute os três comandos abaixo para cobrir todas as formas de ser adicionado c
 
 ```bash
 # Pedido diretamente a você
-gh search prs --review-requested=@me --state=open --org=GenialCare --json number,title,url,repository,author,isDraft --limit 100
+gh search prs --review-requested=@me --state=open --owner=GenialCare --json number,title,url,repository,author,isDraft --limit 100
 
-# Pedido ao time capacidade-clinical
-gh search prs --review-requested=GenialCare/capacidade-clinical --state=open --org=GenialCare --json number,title,url,repository,author,isDraft --limit 100
+# Pedido ao time capacidade-clinica
+gh search prs --review-requested=GenialCare/capacidade-clinica --state=open --owner=GenialCare --json number,title,url,repository,author,isDraft --limit 100
 
 # Pedido ao time genial-devs
-gh search prs --review-requested=GenialCare/genial-devs --state=open --org=GenialCare --json number,title,url,repository,author,isDraft --limit 100
+gh search prs --review-requested=GenialCare/genial-devs --state=open --owner=GenialCare --json number,title,url,repository,author,isDraft --limit 100
 ```
 
 Combine as três listas removendo duplicatas (mesmo número + mesmo repositório).
 
-## 2. Filtrar PRs já aprovados por você
+## 2. Filtrar PRs ignorados
+
+Descarte imediatamente os PRs que se enquadrem em qualquer uma das regras abaixo:
+
+- `isDraft == true`
+- `author.login == "dependabot[bot]"` — bumps automáticos do Dependabot são sempre ignorados
+- `author.login == regishideki` — não revisar PRs próprios
+- Repositório `GenialCare/operational-data-looker` — PRs de teste/infraestrutura de dados, não relevantes para review
+
+## 3. Filtrar PRs já aprovados por você
 
 Para cada PR da lista combinada, busque as reviews:
 
@@ -26,8 +35,6 @@ gh pr view <number> --repo <owner/repo> --json reviews
 ```
 
 **Descarte** os PRs onde já existe uma review com `author.login == "regishideki"` e `state == "APPROVED"`.
-
-Ignore também PRs onde `isDraft == true`.
 
 ## 3. Para cada PR restante, coletar dados
 

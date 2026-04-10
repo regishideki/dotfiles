@@ -2,7 +2,7 @@ Verificar se está passsando no CI.
 Se não estiver, corrigir o problema.
 
 Se o PR estiver marcado como "Draft", remover essa marcação.
-Envie o título do PR + link do PR para o Slack no canal #product-engineers-capacidade-clinica
+Envie o título do PR + link do PR para o Slack no canal #product-engineers-capacidade-clinica com MCP.
 
 Verifique no Jira se há tasks que indiquem o que foi feito. Para encontrar o card correto:
 1. Busque TODOS os cards abertos atribuídos ao usuário atual com JQL: `assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC`
