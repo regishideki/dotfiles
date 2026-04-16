@@ -95,7 +95,8 @@
     }
   },
   "language": "pt-BR",
-  "voiceEnabled": true,
   "autoDreamEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true,
+  "effortLevel": "high"
 }
