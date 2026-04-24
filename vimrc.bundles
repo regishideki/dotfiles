@@ -88,6 +88,15 @@ if has('nvim')
   Plug '3rd/image.nvim'
 endif
 
+" GitHub integration (octo.nvim)
+if has('nvim')
+  Plug 'nvim-lua/plenary.nvim'
+  Plug 'ibhagwan/fzf-lua'
+  Plug 'nvim-tree/nvim-web-devicons'
+  Plug 'pwntester/octo.nvim'
+  Plug 'sindrets/diffview.nvim'
+endif
+
 if filereadable(expand("~/.vimrc.bundles.local"))
   source ~/.vimrc.bundles.local
 endif
