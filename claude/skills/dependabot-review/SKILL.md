@@ -17,14 +17,15 @@ gh pr list --author "app/dependabot" --json number,title,url,headRefName
 Para cada PR:
 
 1. Identifique o nome da lib, a versão atual e a nova versão pelo título do PR (ex: `Bump rails from 7.1.3 to 7.1.4`)
-2. Acesse o repositório da lib no GitHub para buscar o changelog:
+2. Acesse o repositório da lib no GitHub para buscar **todas as releases entre a versão atual e a nova** — não apenas o diff entre as duas pontas. Por exemplo, se o bump é de `2.1.0 → 2.4.0`, leia os changelogs de `2.2.0`, `2.3.0` e `2.4.0` individualmente:
    ```bash
-   gh api repos/{owner}/{repo}/releases --jq '.[].body' | head -100
+   gh api repos/{owner}/{repo}/releases --jq '.[].body' | head -200
    ```
    Ou tente o arquivo CHANGELOG diretamente:
    ```bash
    gh api repos/{owner}/{repo}/contents/CHANGELOG.md --jq '.content' | base64 -d
    ```
+   Filtre pelo intervalo de versões relevante — versões anteriores à atual não interessam.
 3. Se o changelog for vago ou inexistente, compare os commits entre as duas versões:
    ```bash
    gh api "repos/{owner}/{repo}/compare/v{old}...v{new}" --jq '.commits[].commit.message'
@@ -40,40 +41,45 @@ Com base no changelog/commits, faça uma busca no projeto para entender o impact
 
 ### 4. Categorizar o PR
 
+**A categorização deve ser guiada pelo conteúdo real do changelog**, não pelo tipo de versão. Major/minor/patch são apenas sinais de alerta iniciais — o changelog é a fonte de verdade.
+
 Classifique cada PR em uma das três categorias:
 
 ---
 
 #### ✅ Pode mergear sem medo
 
-Critérios:
-- Patch version bump (ex: 1.2.3 → 1.2.4)
-- Apenas correções de bug sem mudança de API
+Critérios (baseados no changelog):
+- Apenas correções de bug sem mudança de comportamento existente
+- Novas features adicionadas sem alterar APIs já existentes
 - Atualização de dependências internas da lib
 - Security fix sem breaking changes
-- Changelog explícito dizendo que é backwards compatible
+- Changelog explícito confirmando compatibilidade retroativa
+- Nenhuma das mudanças toca APIs/métodos que o projeto usa
+
+> Minor bumps podem cair aqui se o changelog mostrar só adição de features sem alterar comportamento existente.
 
 ---
 
 #### ⚠️ Melhor testar na mão antes
 
-Critérios:
-- Minor version bump (ex: 1.2.x → 1.3.0)
-- Mudanças de comportamento que o projeto pode estar usando
-- Deprecated warnings que o projeto pode estar ativando
-- Changelog pouco descritivo ou inexistente
-- Lib com uso amplo no projeto
+Critérios (baseados no changelog):
+- Mudanças de comportamento em funcionalidades que o projeto usa
+- Deprecated warnings ativados em APIs que o projeto usa
+- Changelog vago, incompleto ou inexistente (não dá pra ter certeza)
+- Lib com uso muito amplo no projeto (alto risco de impacto indireto)
+- Alterações em defaults que podem afetar o projeto
 
 ---
 
 #### 🚨 Quase certeza que precisa ajustar o código
 
-Critérios:
-- Major version bump (ex: 1.x → 2.0)
+Critérios (baseados no changelog):
 - Breaking changes explícitos no changelog
 - Remoção de métodos/APIs que o projeto usa
-- Mudança de interface que o projeto depende
+- Mudança de interface ou contrato que o projeto depende
 - Migration guide necessária
+- Major bump com alterações substanciais no comportamento
 
 ---
 
