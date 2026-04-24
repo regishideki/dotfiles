@@ -22,3 +22,9 @@ open-pull-request
 !commands/
 !skills/
 !plugins/
+
+# Marketplace auto-generated (synced from GCS by Claude Code on startup)
+plugins/marketplaces/claude-plugins-official/.gcs-sha
+plugins/marketplaces/claude-plugins-official/.claude-plugin/marketplace.json
+plugins/marketplaces/claude-plugins-official/external_plugins/
+plugins/marketplaces/claude-plugins-official/plugins/

@@ -95,8 +95,9 @@
     }
   },
   "language": "pt-BR",
+  "effortLevel": "high",
   "autoDreamEnabled": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
-  "effortLevel": "high"
+  "theme": "light"
 }
