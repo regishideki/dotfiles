@@ -1,5 +1,3 @@
-# Skill: Dependabot PR Review
-
 Analisa os PRs abertos pelo Dependabot e os categoriza por nível de risco para o projeto.
 
 ## Processo
