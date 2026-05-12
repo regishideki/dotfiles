@@ -62,6 +62,16 @@
             "command": "INPUT=$(cat); FILE_PATH=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // empty'); if [[ \"$FILE_PATH\" == *\"settings.local.json\" ]]; then $HOME/dotfiles/bin/claude-merge-local-permissions \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\" >&2; fi; exit 0"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; echo \"$f\" | grep -qE '\\.tsx?$' && { source ~/.nvm/nvm.sh 2>/dev/null && nvm use && yarn lint:fix \"$f\"; } || true; } 2>/dev/null || true",
+            "statusMessage": "Corrigindo lint..."
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [

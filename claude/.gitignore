@@ -1,4 +1,5 @@
 # Ignore temporary and cache files
+.last-cleanup
 cache/
 debug/
 downloads/
