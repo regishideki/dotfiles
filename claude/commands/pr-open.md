@@ -19,10 +19,13 @@ Descreva as necessidades de negócio, quando houver.
 Quanto ao código, não precisa ser muito detalhista sobre quais arquivos foram alterados, por exemplo. A não ser que
 queira enfatizar algo.
 
-Após abrir o PR, crie os seguites jobs periódicos:
+Após abrir o PR, crie os seguintes jobs periódicos:
 
 - verificar comentários de bots de 5 em 5 minutos no máximo 3 vezes
-  - verifique se tem comentários de algum bot no PR. Se tiver, siga o comando `/pr-analyse-comments`
+  - Para verificar comentários, use OBRIGATORIAMENTE os dois comandos abaixo (substituindo OWNER/REPO e PR_NUMBER):
+    1. Comentários gerais: `gh api repos/OWNER/REPO/pulls/PR_NUMBER/reviews`
+    2. Comentários inline: `gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments`
+  - Se houver qualquer comentário de bot (usuário com `[bot]` no nome), invoque IMEDIATAMENTE o skill `/pr-analyse-comments` usando a ferramenta Skill — não analise os comentários por conta própria.
 
 - verificar CI de 5 em 5 minutos até completar o ciclo com sucesso
   - verifique status do CI

@@ -13,10 +13,10 @@
     "example-skills@anthropic-agent-skills": [
       {
         "scope": "user",
-        "installPath": "/Users/regishattori/.claude/plugins/cache/anthropic-agent-skills/example-skills/7029232b9212",
-        "version": "7029232b9212",
+        "installPath": "/Users/regishattori/.claude/plugins/cache/anthropic-agent-skills/example-skills/f458cee31a75",
+        "version": "f458cee31a75",
         "installedAt": "2026-03-05T18:02:26.438Z",
-        "lastUpdated": "2026-03-05T18:02:26.438Z",
+        "lastUpdated": "2026-05-12T21:42:16.045Z",
         "gitCommitSha": "7029232b9212482c0476da354b83364bd28fab2f"
       }
     ],
