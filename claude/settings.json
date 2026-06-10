@@ -47,7 +47,8 @@
       "Bash(yarn types:*)",
       "Read(*)",
       "WebFetch(domain:*)",
-      "WebSearch"
+      "WebSearch",
+      "mcp__claude_ai_Atlassian__transitionJiraIssue"
     ],
     "defaultMode": "auto"
   },
@@ -104,10 +105,16 @@
       }
     }
   },
+  "autoMode": {
+    "allow": [
+      "Bash(gh api repos/*/pulls/comments/*/replies *)",
+      "$defaults"
+    ]
+  },
   "language": "pt-BR",
   "effortLevel": "high",
   "autoDreamEnabled": true,
+  "theme": "light",
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "theme": "light"
+  "voiceEnabled": true
 }

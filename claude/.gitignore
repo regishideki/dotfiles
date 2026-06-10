@@ -1,4 +1,9 @@
 # Ignore temporary and cache files
+.credentials.json
+.last-update-result.json
+image-cache/
+remote-settings.json
+plugins/.last_inuse_sweep
 .last-cleanup
 cache/
 debug/
