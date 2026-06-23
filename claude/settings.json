@@ -75,21 +75,11 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/Users/regishattori/dotfiles/claude/hooks/deepwork-session-check.sh"
-          }
-        ]
-      }
-    ]
+    "UserPromptSubmit": []
   },
   "statusLine": {
     "type": "command",
-    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // empty'); git_branch=\"\"; if git -C \"$cwd\" rev-parse --git-dir > /dev/null 2>&1; then git_branch=$(git -C \"$cwd\" branch --show-current 2>/dev/null); [ -n \"$git_branch\" ] && git_branch=\" ($git_branch)\"; fi; status_line=\"${model} | ${cwd}${git_branch}\"; if [ -n \"$remaining\" ]; then remaining_int=$(printf \"%.0f\" \"$remaining\"); status_line=\"${status_line} | Context: ${remaining_int}%\"; fi; echo \"$status_line\""
+    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // empty'); repo=$(echo \"$input\" | jq -r '.workspace.repo.name // empty'); [ -z \"$repo\" ] && repo=$(basename \"$cwd\"); git_branch=\"\"; if git --no-optional-locks -C \"$cwd\" rev-parse --git-dir > /dev/null 2>&1; then git_branch=$(git --no-optional-locks -C \"$cwd\" branch --show-current 2>/dev/null); [ -n \"$git_branch\" ] && git_branch=\" ($git_branch)\"; fi; pr_num=$(echo \"$input\" | jq -r '.pr.number // empty'); pr_review=$(echo \"$input\" | jq -r '.pr.review_state // empty'); pr_info=\"\"; if [ -n \"$pr_num\" ]; then pr_info=\" | PR #${pr_num}\"; [ -n \"$pr_review\" ] && pr_info=\"${pr_info} (${pr_review})\"; fi; effort=$(echo \"$input\" | jq -r '.effort.level // empty'); effort_info=\"\"; [ -n \"$effort\" ] && effort_info=\" | effort:${effort}\"; status_line=\"${model} | ${repo}${git_branch}${pr_info}${effort_info}\"; if [ -n \"$remaining\" ]; then remaining_int=$(printf \"%.0f\" \"$remaining\"); status_line=\"${status_line} | ctx:${remaining_int}%\"; fi; echo \"$status_line\""
   },
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,
@@ -105,16 +95,17 @@
       }
     }
   },
+  "language": "pt-BR",
+  "effortLevel": "high",
+  "autoDreamEnabled": true,
+  "theme": "light",
+  "skipAutoPermissionPrompt": true,
   "autoMode": {
     "allow": [
       "Bash(gh api repos/*/pulls/comments/*/replies *)",
       "$defaults"
     ]
   },
-  "language": "pt-BR",
-  "effortLevel": "high",
-  "autoDreamEnabled": true,
-  "theme": "light",
-  "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "enableWorkflows": false
 }

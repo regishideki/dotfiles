@@ -27,7 +27,7 @@ Após abrir o PR, crie os seguintes jobs periódicos:
     2. Comentários inline: `gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments`
   - Se houver qualquer comentário de bot (usuário com `[bot]` no nome), invoque IMEDIATAMENTE o skill `/pr-analyse-comments` usando a ferramenta Skill — não analise os comentários por conta própria.
 
-- verificar CI de 5 em 5 minutos até completar o ciclo com sucesso
+- verificar CI de 10 em 10 minutos até completar o ciclo com sucesso
   - verifique status do CI
     - se estiver OK:
         - parar job
