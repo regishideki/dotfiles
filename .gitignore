@@ -10,3 +10,6 @@ claude/plugins/blocklist.json
 claude/plugins/known_marketplaces.json
 claude/policy-limits.json
 claude/settings.local.json
+claude/daemon.log
+claude/daemon/
+claude/jobs/

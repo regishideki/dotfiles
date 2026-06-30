@@ -21,7 +21,7 @@ queira enfatizar algo.
 
 Após abrir o PR, crie os seguintes jobs periódicos:
 
-- verificar comentários de bots de 5 em 5 minutos no máximo 3 vezes
+- verificar comentários de bots de 10 em 10 minutos no máximo 2 vezes
   - Para verificar comentários, use OBRIGATORIAMENTE os dois comandos abaixo (substituindo OWNER/REPO e PR_NUMBER):
     1. Comentários gerais: `gh api repos/OWNER/REPO/pulls/PR_NUMBER/reviews`
     2. Comentários inline: `gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments`

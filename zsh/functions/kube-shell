@@ -1,0 +1,59 @@
+# kube-shell — abre um shell interativo em um pod efêmero baseado no deployment `web`
+#
+# Uso: kube-shell [-k context] [-n namespace] [-c command]
+#
+# Opções:
+#   -k CONTEXT    contexto kubectl a usar (padrão: contexto atual)
+#   -n NAMESPACE  namespace do pod (padrão: core)
+#   -c COMMAND    comando a executar no container (padrão: sh)
+#
+# Exemplos:
+#   kube-shell
+#   kube-shell -c "bundle exec rails console"
+#   kube-shell -k production
+#   kube-shell -k staging -n payments -c "bundle exec rails console"
+kube-shell() {
+  local context="" namespace="core" cmd="sh"
+
+  while getopts "k:n:c:" opt; do
+    case $opt in
+      k) context="$OPTARG" ;;
+      n) namespace="$OPTARG" ;;
+      c) cmd="$OPTARG" ;;
+    esac
+  done
+
+  local kctx=()
+  [ -n "$context" ] && kctx=(--context "$context")
+
+  local pod_name="kube-$(echo "$cmd" | tr ' /' '-' | tr -cd '[:alnum:]-' | cut -c1-30)"
+
+  local image
+  image=$(kubectl "${kctx[@]}" get deployment web -n "$namespace" \
+    -o jsonpath='{.spec.template.spec.containers[0].image}')
+
+  local pod_status
+  pod_status=$(kubectl "${kctx[@]}" get pod "$pod_name" -n "$namespace" \
+    -o jsonpath='{.status.phase}' 2>/dev/null)
+
+  if [ "$pod_status" = "Running" ]; then
+    kubectl "${kctx[@]}" exec -it "$pod_name" -n "$namespace" -- sh -c "$cmd"
+  else
+    [ -n "$pod_status" ] && kubectl "${kctx[@]}" delete pod "$pod_name" -n "$namespace"
+
+    local overrides
+    overrides=$(kubectl "${kctx[@]}" get deployment web -n "$namespace" -o json | jq -c \
+      --arg cmd "$cmd" \
+      '{spec: {containers: [{
+        name: "core-sh",
+        image: .spec.template.spec.containers[0].image,
+        command: ["/bin/sh", "-c", $cmd],
+        tty: true, stdin: true,
+        envFrom: (.spec.template.spec.containers[0].envFrom // []),
+        env: (.spec.template.spec.containers[0].env // [])
+      }], restartPolicy: "Never"}}')
+
+    kubectl "${kctx[@]}" run "$pod_name" -it --rm \
+      -n "$namespace" --image="$image" --restart=Never --overrides="$overrides"
+  fi
+}

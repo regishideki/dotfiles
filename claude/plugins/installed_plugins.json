@@ -13,11 +13,11 @@
     "example-skills@anthropic-agent-skills": [
       {
         "scope": "user",
-        "installPath": "/Users/regishattori/.claude/plugins/cache/anthropic-agent-skills/example-skills/575462609294",
-        "version": "575462609294",
+        "installPath": "/Users/regishattori/.claude/plugins/cache/anthropic-agent-skills/example-skills/35414756ca55",
+        "version": "35414756ca55",
         "installedAt": "2026-03-05T18:02:26.438Z",
-        "lastUpdated": "2026-06-09T21:25:43.130Z",
-        "gitCommitSha": "57546260929473d4e0d1c1bb75297be2fdfa1949"
+        "lastUpdated": "2026-06-29T11:40:05.794Z",
+        "gitCommitSha": "35414756ca55738e050562e272a6bbc6273aa926"
       }
     ],
     "playground@claude-plugins-official": [
@@ -26,7 +26,7 @@
         "installPath": "/Users/regishattori/.claude/plugins/cache/claude-plugins-official/playground/unknown",
         "version": "unknown",
         "installedAt": "2026-03-05T18:05:58.043Z",
-        "lastUpdated": "2026-06-23T13:54:36.325Z"
+        "lastUpdated": "2026-06-30T20:54:14.836Z"
       }
     ],
     "ruby-lsp@claude-plugins-official": [
