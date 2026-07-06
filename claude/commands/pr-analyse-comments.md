@@ -9,7 +9,7 @@ Para buscar os comentários, use os dois comandos abaixo (substituindo OWNER/REP
    `gh api repos/OWNER/REPO/pulls/comments`
 
 Reflita sobre quais fazem sentido e quais não fazem.
-Os que fazem sentido, faça a alteração necessária, dê push e comente nas threads que a alteração foi feita com link para
+Os que fazem sentido, faça a alteração necessária, crie um teste para validar, se necessário, dê push e comente nas threads que a alteração foi feita com link para
 o commit. Para responder a um comentário inline, use:
    `gh api repos/OWNER/REPO/pulls/comments/COMMENT_ID/replies -f body="..."`
 
