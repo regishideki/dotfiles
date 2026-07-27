@@ -1,33 +1,34 @@
 #!/bin/zsh
 # Run Claude Code via OpenRouter with multiple model support
 
-local profile="glm"
+function claude-or() {
+  local profile="glm"
 
-if [[ -n "${1:-}" && "$1" != -* ]]; then
-  profile="$1"
-  shift
-fi
+  if [[ -n "${1:-}" && "$1" != -* ]]; then
+    profile="$1"
+    shift
+  fi
 
-local model="" mapped_model="" display_name="" description="" openrouter_key="" compact_window=""
+  local model="" mapped_model="" display_name="" description="" openrouter_key="" compact_window=""
 
-case "$profile" in
-  glm|glm-5.2)
-    model="z-ai/glm-5.2"
-    mapped_model="${model}[1m]"
-    display_name="GLM 5.2 · OpenRouter · 1M"
-    description="GLM 5.2 via OpenRouter, contexto de 1M tokens"
-    openrouter_key="${OPENROUTER_GLM_API_KEY:-${OPENROUTER_API_KEY:-}}"
-    compact_window="950000"
-    ;;
-  deepseek|deepseek-v4|deepseek-v4-pro|v4-pro)
-    model="deepseek/deepseek-v4-pro"
-    mapped_model="${model}[1m]"
-    display_name="DeepSeek V4 Pro · OpenRouter"
-    description="DeepSeek V4 Pro via OpenRouter"
-    openrouter_key="${OPENROUTER_DEEPSEEK_API_KEY:-${OPENROUTER_API_KEY:-}}"
-    ;;
-  help|-h|--help)
-    cat <<'EOF'
+  case "$profile" in
+    glm|glm-5.2)
+      model="z-ai/glm-5.2"
+      mapped_model="${model}[1m]"
+      display_name="GLM 5.2 · OpenRouter · 1M"
+      description="GLM 5.2 via OpenRouter, contexto de 1M tokens"
+      openrouter_key="${OPENROUTER_GLM_API_KEY:-${OPENROUTER_API_KEY:-}}"
+      compact_window="950000"
+      ;;
+    deepseek|deepseek-v4|deepseek-v4-pro|v4-pro)
+      model="deepseek/deepseek-v4-pro"
+      mapped_model="${model}[1m]"
+      display_name="DeepSeek V4 Pro · OpenRouter"
+      description="DeepSeek V4 Pro via OpenRouter"
+      openrouter_key="${OPENROUTER_DEEPSEEK_API_KEY:-${OPENROUTER_API_KEY:-}}"
+      ;;
+    help|-h|--help)
+      cat <<'EOF'
 Uso:
   claude-or glm [argumentos do Claude]
   claude-or deepseek [argumentos do Claude]
@@ -42,39 +43,40 @@ Modelos:
   glm       -> z-ai/glm-5.2, contexto 1M
   deepseek  -> deepseek/deepseek-v4-pro
 EOF
-    return 0 ;;
-  *)
-    echo "Modelo desconhecido: $profile. Use: claude-or glm ou claude-or deepseek"
-    return 2 ;;
-esac
+      return 0 ;;
+    *)
+      echo "Modelo desconhecido: $profile. Use: claude-or glm ou claude-or deepseek"
+      return 2 ;;
+  esac
 
-if [[ -z "$openrouter_key" ]]; then
-  echo "Chave não configurada. Configure: OPENROUTER_API_KEY ou OPENROUTER_${profile^^}_API_KEY"
-  return 1
-fi
+  if [[ -z "$openrouter_key" ]]; then
+    echo "Chave não configurada. Configure: OPENROUTER_API_KEY ou OPENROUTER_${profile^^}_API_KEY"
+    return 1
+  fi
 
-echo "Claude Code via OpenRouter — Modelo: $display_name"
+  echo "Claude Code via OpenRouter — Modelo: $display_name"
 
-(
-  unset ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_1M_CONTEXT CLAUDE_CODE_AUTO_COMPACT_WINDOW
+  (
+    unset ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_1M_CONTEXT CLAUDE_CODE_AUTO_COMPACT_WINDOW
 
-  export ANTHROPIC_BASE_URL="https://openrouter.ai/api"
-  export ANTHROPIC_AUTH_TOKEN="$openrouter_key"
-  export ANTHROPIC_API_KEY=""
+    export ANTHROPIC_BASE_URL="https://openrouter.ai/api"
+    export ANTHROPIC_AUTH_TOKEN="$openrouter_key"
+    export ANTHROPIC_API_KEY=""
 
-  export ANTHROPIC_DEFAULT_SONNET_MODEL="$mapped_model"
-  export ANTHROPIC_DEFAULT_OPUS_MODEL="$mapped_model"
-  export ANTHROPIC_DEFAULT_HAIKU_MODEL="$model"
+    export ANTHROPIC_DEFAULT_SONNET_MODEL="$mapped_model"
+    export ANTHROPIC_DEFAULT_OPUS_MODEL="$mapped_model"
+    export ANTHROPIC_DEFAULT_HAIKU_MODEL="$model"
 
-  export ANTHROPIC_DEFAULT_SONNET_MODEL_NAME="$display_name"
-  export ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION="$description"
-  export ANTHROPIC_DEFAULT_OPUS_MODEL_NAME="$display_name"
-  export ANTHROPIC_DEFAULT_OPUS_MODEL_DESCRIPTION="$description"
-  export ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME="$display_name"
-  export ANTHROPIC_DEFAULT_HAIKU_MODEL_DESCRIPTION="$description"
+    export ANTHROPIC_DEFAULT_SONNET_MODEL_NAME="$display_name"
+    export ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION="$description"
+    export ANTHROPIC_DEFAULT_OPUS_MODEL_NAME="$display_name"
+    export ANTHROPIC_DEFAULT_OPUS_MODEL_DESCRIPTION="$description"
+    export ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME="$display_name"
+    export ANTHROPIC_DEFAULT_HAIKU_MODEL_DESCRIPTION="$description"
 
-  export CLAUDE_CODE_SUBAGENT_MODEL="inherit"
-  [[ -n "$compact_window" ]] && export CLAUDE_CODE_AUTO_COMPACT_WINDOW="$compact_window"
+    export CLAUDE_CODE_SUBAGENT_MODEL="inherit"
+    [[ -n "$compact_window" ]] && export CLAUDE_CODE_AUTO_COMPACT_WINDOW="$compact_window"
 
-  exec claude --model sonnet --dangerously-skip-permissions "$@"
-)
+    exec claude --model sonnet "$@"
+  )
+}

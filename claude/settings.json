@@ -45,6 +45,7 @@
       "Bash(yarn lint:fix:*)",
       "Bash(yarn test:*)",
       "Bash(yarn types:*)",
+      "Bash(claude:*)",
       "Read(*)",
       "WebFetch(domain:*)",
       "WebSearch",
@@ -106,5 +107,6 @@
       "$defaults"
     ]
   },
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "skipDangerousModePermissionPrompt": true
 }

@@ -17,3 +17,5 @@ Os comentários que não entender ou que não fizer muito sentido, me avise quai
 mensagem de resposta, mas não a envie ainda até a minha aprovação.
 
 Todas as respostas aos comentários devem ser escritas em pt-BR.
+
+Caso seja uma mensagem do bot do Gemini, marcar o @gemini-code-assist.

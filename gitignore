@@ -25,3 +25,5 @@ gin/**
 GEMINI.md
 claude/daemon.lock
 claude/daemon.status.json
+
+**/.claude/settings.local.json
