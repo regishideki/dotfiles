@@ -1,3 +1,7 @@
+# Carregar variáveis sensíveis (chaves de API, etc) se existirem
+# Nunca commit esse arquivo (veja .gitignore)
+[[ -f "$HOME/.zshrc.secrets" ]] && source "$HOME/.zshrc.secrets"
+
 #export MAVEN_HOME=/Users/regishattori/apache-maven-3.5.4
 export PATH=$PATH:$MAVEN_HOME/bin
 

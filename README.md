@@ -173,6 +173,81 @@ Your `~/dotfiles-local/zshrc.local` might look like this:
       eval "$(pyenv init -)"
     fi
 
+Managing Secrets and Environment Variables
+-------------------------------------------
+
+Sensitive data like API keys should never be committed to the repository. This dotfiles
+setup uses `~/.zshrc.secrets` for managing sensitive environment variables.
+
+### Setup
+
+1. Create `~/.zshrc.secrets` by copying the template:
+
+```bash
+cp ~/dotfiles/zshrc.secrets.example ~/.zshrc.secrets
+```
+
+2. Edit the file and add your sensitive variables:
+
+```bash
+# Sensitive environment variables and API keys
+# This file is local and never committed
+
+# OpenRouter API Keys (for claude-or function)
+export OPENROUTER_API_KEY="sk-or-your-actual-key-here"
+export OPENROUTER_GLM_API_KEY="sk-or-glm-specific-key"
+export OPENROUTER_DEEPSEEK_API_KEY="sk-or-deepseek-specific-key"
+
+# Add other sensitive variables as needed
+```
+
+3. The file is automatically sourced by `zshrc.local`. Just reload your shell:
+
+```bash
+exec zsh
+```
+
+### Important
+
+- **Never commit `~/.zshrc.secrets`** — it's ignored by git (see `.gitignore`)
+- Add new API keys or secrets only to `~/.zshrc.secrets`, never to versioned files
+- Use `zshrc.secrets.example` as a template for documenting required variables
+
+Claude via OpenRouter (`claude-or` function)
+---------------------------------------------
+
+The `claude-or` function allows you to run Claude Code with different models via OpenRouter.
+
+### Available Models
+
+- **GLM 5.2** (default): `claude-or glm`
+- **DeepSeek V4 Pro**: `claude-or deepseek`
+
+### Usage
+
+```bash
+# Start with GLM 5.2 (default)
+claude-or glm
+
+# Resume a previous session
+claude-or glm --resume
+
+# Ask a question directly
+claude-or glm -p "Analyze this project architecture"
+
+# Use DeepSeek V4 Pro
+claude-or deepseek
+
+# View available models
+claude-or help
+```
+
+### Setup
+
+1. Add your OpenRouter API keys to `~/.zshrc.secrets` (see "Managing Secrets" section above)
+2. The function is automatically available in any new shell session
+3. Run `claude-or help` to see all available options
+
 Your `~/dotfiles-local/vimrc.bundles.local` might look like this:
 
     Plug 'Lokaltog/vim-powerline'

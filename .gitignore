@@ -2,6 +2,9 @@
 vim/bundle/
 snippet.txt
 
+# Sensitive local files (never commit)
+.zshrc.secrets
+
 # Claude Code - auto-generated files
 claude/backups/
 claude/sessions/
