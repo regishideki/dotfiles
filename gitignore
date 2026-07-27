@@ -23,3 +23,5 @@ repopack-output.txt
 venv/**
 gin/**
 GEMINI.md
+claude/daemon.lock
+claude/daemon.status.json

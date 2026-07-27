@@ -96,7 +96,7 @@
     }
   },
   "language": "pt-BR",
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "autoDreamEnabled": true,
   "theme": "light",
   "skipAutoPermissionPrompt": true,
