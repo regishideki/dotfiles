@@ -80,16 +80,20 @@ ls ~/.<tool>/<config-file>
 - Custom system prompts (`SOUL.md`, `CLAUDE.md`)
 - User-authored commands/skills
 - Keybindings
+- `tui-theme-boot.json` — user-customized Hermes theme/skin
+- `slack-manifest.json` — Slack app manifest (if using Slack gateway)
+- `memories/MEMORY.md`, `memories/USER.md` — user-authored persistent memory; portable between machines
 
 ### Ignore (runtime/secrets/binary)
 - `.env` — API keys and credentials
 - `auth.json` — OAuth tokens
+- `auth.lock`, `mcp-tokens/` — auth state and tokens
 - `sessions/`, `state.db*` — session history
 - `cache/`, `logs/` — runtime state
 - `cron/` — scheduled job executions
 - `hermes-agent/`, `node/`, `bin/` — vendored binaries (reinstalled by installer)
+- `bootstrap-cache/`, `desktop/`, `audio_cache/` — runtime artifacts
 - Built-in skills — reinstalled on update; only track custom ones
-- `memories/` — injected at runtime, not config
 - `*.json` cache files (model lists, provider info)
 
 See `references/tool-config-inventory.md` for per-tool breakdowns.
@@ -102,4 +106,5 @@ See `references/migrating-claude-to-hermes.md` for the Claude → Hermes config/
 - **Don't move the dir while the tool's installer is running.** A `hermes setup` or update in progress writes to the dir. Check with `ps aux | grep <tool>` first.
 - **The `*` whitelist pattern needs every path segment unignored.** When `*` ignores everything, git cannot re-include a file inside a directory whose parent is still ignored. `!skills/` un-ignores the `skills/` entry itself but NOT its contents — `skills/github/` stays ignored by `*`. You must explicitly unignore EACH directory in the path down to the files: `!skills/github/` AND `!skills/github/my-skill/` AND `!skills/github/my-skill/**`. Omit any level and nothing below it is tracked. This is why `!skills/software-development/` worked (we listed it) but `!skills/github/` initially didn't (we forgot that level).
 - **`!skills/**` alone is insufficient for selective tracking.** If you want to track only SOME skills (custom) but not others (built-in), you cannot use `!skills/**` — that un-ignores everything including built-ins. Instead, use `!skills/` + `!skills/<category>/` + `!skills/<category>/<custom-skill>/` + `!skills/<category>/<custom-skill>/**` for each custom skill individually.
+- **Shortcut: `!skills/<category>/**` when all skills in a category are custom.** If every skill under a category (e.g., `software-development/`) is user-authored, you can track the whole category at once with `!skills/<category>/**` instead of listing each skill individually. This avoids the maintenance burden of adding new custom skills one by one. Only use this when you're confident the category has no built-in skills — check with `ls skills/<category>/` first.
 - **Secrets may be commented but still present.** An `.env` where all keys are commented out still shouldn't be tracked — the user may uncomment them later, and git history is forever.
