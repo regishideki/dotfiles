@@ -1,0 +1,11 @@
+User manages dotfiles via rcm (thoughtbot/dotfiles) at ~/dotfiles. Both ~/.claude and ~/.hermes are symlinked into ~/dotfiles/ with .gitignore whitelist pattern tracking only portable configs. rcrc has SYMLINK_DIRS and EXCLUDES for both. Hermes is 2.7GB — .gitignore whitelist mandatory. Custom skills tracked individually (each path segment must be un-ignored). Claude commands were converted to Hermes skills (Hermes has no custom slash commands). User works at GenialCare (GenialCare/* repos on GitHub), uses pt-BR, reviewer handle regishideki, team capacidade-clinica.
+§
+Cron: "10m"=one-shot, "every 10m"=recurring. Slack/Atlassian MCP need `hermes mcp login <name>`. Slack API: conversations.list não lista canais privados onde o bot não é membro, mas chat.postMessage funciona com channels:write. Se canal não aparecer, pedir link/ID ao usuário. Slack channel #product-engineers-capacidade-clinica = C06PPV63EU9 (privado).
+§
+clinical-panel design tokens at node_modules/@genialcare/atipico-tokens/build/js/theme.js (purple500=#6d68ad, neutral500=#333, 8px base, DM Sans). Global styles in src/index.styles.ts.
+§
+Clinical::Agreement uses STI (specific_type). Subtypes: Embedded (typeform via embed_url), NativeForm (native mobile form, requires native_form_type), Content, Manual. COPM v1=Embedded, v2=NativeForm (gated by FeatureFlag CLINICAL_COPM_NATIVE_FORM_ENABLED). CreateCopm use case picks template by flag; check_no_pending_copm queries internal_title+completed_at only (no specific_type filter). Migrate legacy: update_column specific_type+native_form_type.
+§
+create-rails-snippet skill is USER-OWNED (created_by=None). Autonomous patches refused — user must run `hermes curator adopt create-rails-snippet` to opt it in.
+§
+Trailblazer use cases (*::UseCases::* < Trailblazer::Activity::Railway) must be called with a POSITIONAL HASH, not kwargs: `UseCase.call({id:..., user:...})` not `UseCase.call(id:..., user:...)`. Kwargs → ArgumentError: wrong number of arguments (given 0, expected 1). See controllers for canonical pattern.

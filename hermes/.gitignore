@@ -1,0 +1,69 @@
+# Ignore everything by default (Hermes runtime is 2.7GB+)
+*
+
+# ── Keep user configuration files ────────────────────────────────────
+!.gitignore
+!config.yaml
+!SOUL.md
+!slack-manifest.json
+!tui-theme-boot.json
+
+# ── Keep persistent memories (user-authored content) ─────────────────
+!memories/
+!memories/MEMORY.md
+!memories/USER.md
+
+# ── Keep custom skills (user-authored, not built-in) ─────────────────
+# Built-in skills are reinstalled on update; only track custom ones
+# migrated from claude/skills/ and claude/commands/.
+!skills/
+!skills/software-development/
+!skills/software-development/**
+!skills/software-development/*/
+!skills/software-development/*/**
+
+# Custom skills migrated from claude/commands/ (converted to Hermes skills)
+!skills/github/
+!skills/github/merge-permissions/
+!skills/github/merge-permissions/**
+!skills/github/merge-to-development/
+!skills/github/merge-to-development/**
+!skills/github/pr-analyse-comments/
+!skills/github/pr-analyse-comments/**
+!skills/github/pr-open/
+!skills/github/pr-open/**
+!skills/github/pr-open-full/
+!skills/github/pr-open-full/**
+!skills/github/pr-request-review/
+!skills/github/pr-request-review/**
+!skills/github/review-dependabot-prs/
+!skills/github/review-dependabot-prs/**
+!skills/github/review-pr/
+!skills/github/review-pr/**
+!skills/github/review-queue/
+!skills/github/review-queue/**
+!skills/github/solid-queue-failures/
+!skills/github/solid-queue-failures/**
+!skills/github/solid-queue-inspect/
+!skills/github/solid-queue-inspect/**
+
+# Custom skill migrated from claude/commands/deepwork.md
+!skills/productivity/
+!skills/productivity/deepwork/
+!skills/productivity/deepwork/**
+
+# ── Never track secrets or runtime state ─────────────────────────────
+# .env            — API keys and credentials
+# auth.json       — OAuth tokens
+# auth.lock       — lock file
+# sessions/       — conversation history
+# state.db*       — SQLite session store
+# cron/           — scheduled job executions
+# cache/          — runtime cache
+# logs/           — log files
+# memories/       — injected at runtime, not config
+# hermes-agent/   — 2.4GB of source code (reinstalled via `hermes setup`)
+# node/           — Node.js runtime
+# bin/            — vendored binaries
+# hermes-setup    — installer binary
+# *.json          — cached model lists, provider info, etc.
