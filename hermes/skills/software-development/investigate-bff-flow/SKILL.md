@@ -139,3 +139,9 @@ src/
 - `references/clinical-panel-bff-checkin-checkout-evolution.md` — Detailed findings
   from the checkin/checkout + evolution check investigation (queries, mutations,
   endpoints, data flow diagram).
+- For the three evolution-check types (trial_counter, checklist,
+  without_configuration), their validation rules, and discipline-to-type mapping,
+  see the core skill's `references/evolution-check-types-and-disciplines.md`
+  (load `investigate-core-flow` skill). For the frontend UI layer (component
+  decision tree, i18n labels, screen layout per type), see the core skill's
+  `references/evolution-check-ui-components.md`.
