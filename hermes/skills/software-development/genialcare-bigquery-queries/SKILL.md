@@ -105,6 +105,37 @@ See `queries/utils/objective-evolution-chain.sql` for a reusable CTE.
 
 ## Pitfalls
 
+### Federated tables (Google Sheets) — \"Permission denied while getting Drive credentials\"
+
+Some BigQuery tables are backed by Google Sheets on Drive (external/federated data sources). Both `bq` CLI and Python `google-cloud-bigquery` will fail with:
+
+```
+Access Denied: BigQuery BigQuery: Permission denied while getting Drive credentials.
+```
+
+This happens even when `gcloud auth login` succeeds — the BigQuery OAuth scope is present, but the token lacks the **Drive scope** required to access the underlying Sheet. The query works fine in the BigQuery Console UI (which uses browser-based OAuth with full scopes), but fails from CLI/ADC.
+
+**Fix:** The user must re-authenticate with Drive scope:
+
+```sh
+# For bq CLI
+gcloud auth login --enable-gdrive-access
+
+# For ADC / Python library
+gcloud auth application-default login \
+  --scopes=https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/cloud-platform
+```
+
+**Detection:** If `bq query` fails with "Permission denied while getting Drive credentials" on a table you've queried before, the table is likely federated. Check in the BigQuery Console → table details → "External data configuration" for the Drive URI.
+
+**Workaround:** If the user can't/won't add Drive scope, ask them to run the query directly in the BigQuery Console and share results. Do NOT keep retrying from CLI — the error is deterministic.
+
+**Dry-run still works on federated tables.** `bq query --dry_run` validates syntax successfully even for federated sources — only actual execution (data access) fails. Use `sed 's/--.*//' file.sql | bq query --dry_run` for a fast syntax check before asking the user to run in the Console.
+
+### `normalize` is a reserved BigQuery function name
+
+`CREATE TEMP FUNCTION normalize(...)` fails with `User-defined function name 'normalize' conflicts with a reserved built-in function name`. Use `normalize_obj` or any non-reserved name instead. This is a silent trap — the dry-run passes; only execution reveals the error.
+
 ### BigQuery Array ordering — use WITH OFFSET
 
 When extracting array elements in order, you MUST use `WITH OFFSET`:
@@ -132,20 +163,50 @@ Not all library objectives have an evolution check configuration. Use `LEFT JOIN
 
 ### Multi-tenant duplication — filter by tenant_id
 
-There are **two protocols named "Fonoaudiologia"** (and likewise for other disciplines) — one per tenant. When querying `library_objectives` joined to `protocols` by name **without** going through `active_clinical_cases` (which already filters by tenant), every row appears duplicated.
+**Both `library_objectives` and `protocols`** have one row per tenant. There are exactly 2 tenants (GenialCare and Care+Mindplace), so every description/protocol-name appears twice.
+
+This causes **multiplicative row explosion** when JOINing on non-tenant-keyed columns like `description`. Example: joining `library_objectives` ON `description` without a tenant filter matches BOTH tenant rows for the same description text — each source row doubles. Two such JOINs (e.g., `to_obj` and `pei_track_obj`) multiplies by 4×.
+
+The `library_objectives` table has **852 total rows for 426 distinct descriptions** (exactly 2×, one per tenant). Same description, different `tenant_id`, different `id`, different `protocol_item_id`.
 
 Tenant IDs:
 - `6f8da042-2dd1-4872-a613-84d371bde78c` → GenialCare
 - `a4d02a8c-4c27-41b6-80ac-3401f3964e34` → Care+Mindplace
 
-**Fix:** filter `protocols.tenant_id` (or `library_objectives.tenant_id`) when querying the library/protocol layer directly:
+**Fix — filter by tenant_id on the library/protocol table itself.** The GenialCare tenant is the canonical choice unless the user specifies otherwise:
+
+```sql
+-- Filtering library_objectives by tenant (JOIN approach)
+INNER JOIN `supervision-production-8f1v.intervention.library_objectives` lo
+  ON lo.description = mapper.occupational_therapy_objective
+  AND lo.discarded_at IS NULL
+  AND lo.tenant_id = '6f8da042-2dd1-4872-a613-84d371bde78c'  -- GenialCare
+
+-- Or via a pre-filtered CTE
+WITH genial_library_objectives AS (
+  SELECT lo.*
+  FROM `supervision-production-8f1v.intervention.library_objectives` lo
+  INNER JOIN `data-kernel-production-4o7n.datakernel.tenants` t ON t.id = lo.tenant_id
+  WHERE t.name = "genialcare"
+    AND lo.discarded_at IS NULL
+)
+```
+
+Same for protocols:
 ```sql
 INNER JOIN `supervision-production-8f1v.intervention.protocols` p
   ON p.id = pi.protocol_id
   AND p.name = 'Fonoaudiologia'
   AND p.tenant_id = '6f8da042-2dd1-4872-a613-84d371bde78c'  -- GenialCare
 ```
+
 This is NOT needed when joining through `active_clinical_cases` — that CTE already scopes to a single tenant via the `tenants` table join.
+
+### Text matching on `description` — normalize before comparing
+
+When joining or LEFT JOIN/IS NULL on `description` text between a mapper table and `library_objectives`, `TRIM(LOWER(...))` alone misses many trivial mismatches. `library_objectives` descriptions use curly quotes (`""`), ellipsis (`...`), and trailing periods that mapper text often lacks. Apply normalization (strip `[.,;]`, replace `...`, normalize `\u201c`/`\u201d` → `"`, collapse whitespace) to both sides. See `references/mapper-missing-objectives.md` for the full regex chain and mismatch categories.
+
+**Accent caveat:** the normalization UDF preserves Unicode accents (`LOWER()` doesn't strip them). When providing library text for copy-paste into a mapper, always include the exact accents from the library — the user may paste without accents ("posicao"), which won't match the accented library version ("posição").
 
 ### Formatting arrays as text lists with STRING_AGG
 
@@ -181,6 +242,108 @@ WHERE LOWER(c.user_email) = 'someone@gmail.com'
 
 The `clinicians` array element has a `clinician_id` field (not `id`). The `clinicians` table column for email is `user_email` (not `email` — that's on the `users` table).
 
+### BigQuery auth fallback — ADC when `bq` CLI is expired
+
+When `bq query` fails with `Reauthentication failed. cannot prompt during non-interactive execution`, user credentials are stale. Application Default Credentials (ADC) often still work even when the `bq` CLI doesn't.
+
+**Preferred: `google-cloud-bigquery` Python library** — runs actual queries with full results (not just dry-run). Install once, then use as a `bq` replacement:
+
+```sh
+python3 -m pip install --quiet google-cloud-bigquery
+```
+
+```python
+from google.cloud import bigquery
+
+client = bigquery.Client(project="supervision-production-8f1v")
+sql = open("queries/assessment/copm.sql").read()
+rows = list(client.query(sql))
+for row in rows:
+    print(dict(row))
+```
+
+The Python library uses ADC automatically (`~/.config/gcloud/legacy_credentials/<account>/adc.json`). It can also inspect schemas:
+
+```python
+tbl = client.get_table("supervision-production-8f1v.assessment.copm_forms")
+for f in tbl.schema:
+    print(f"  {f.name}  {f.field_type}")
+```
+
+And list datasets/tables:
+```python
+for ds in client.list_datasets(project="data-kernel-production-4o7n"):
+    print(ds.dataset_id)
+```
+
+**Alternative: REST API via `curl`** — for dry-run validation only (no results):
+
+```sh
+TOKEN=$(gcloud auth application-default print-access-token)
+curl -s -X POST "https://bigquery.googleapis.com/bigquery/v2/projects/supervision-production-8f1v/queries" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -Rs '{query: ., dryRun: true, useLegacySql: false}' queries/og/some-query.sql)" \
+  | jq '.'
+```
+
+**Key takeaway:** prefer the Python library — it gets real results, not just dry-runs. Reserve `curl` for environments where you can't install packages.
+
+### Inferring required vs optional fields per sub-type via NULL fill rates
+
+When a table has logical sub-types (e.g. `configuration_type` on a related
+record, not an ActiveRecord STI `type` column), all columns are nullable in
+schema.rb. To determine which fields are actually required/optional per
+sub-type in production, query the NULL fill rate grouped by the discriminator:
+
+```sql
+SELECT
+  IFNULL(ecc.configuration_type, "without_config") AS config_type,
+  oec.was_assessed,
+  COUNT(*) AS total,
+  SUM(CASE WHEN oec.evolution_scale IS NOT NULL THEN 1 ELSE 0 END) AS evolution_scale,
+  SUM(CASE WHEN oec.prerequisites IS NOT NULL AND ARRAY_LENGTH(oec.prerequisites) > 0 THEN 1 ELSE 0 END) AS prerequisites,
+  SUM(CASE WHEN oec.pros IS NOT NULL AND oec.pros != "" THEN 1 ELSE 0 END) AS pros
+  -- ... repeat for each attribute
+FROM `supervision-production-8f1v.intervention.objective_evolution_checks` oec
+LEFT JOIN `supervision-production-8f1v.intervention.evolution_check_configurations` ecc
+  ON oec.configuration_id = ecc.id
+GROUP BY config_type, oec.was_assessed
+ORDER BY config_type, oec.was_assessed
+```
+
+When `has_col` == `total` (100%) for a type+assessed combination, the field is
+de-facto required. When it's 0%, the field is never used for that type. This
+complements reading the Dry::Validation contracts in the core — use BQ to
+verify what actually happens in production, not just what the code enforces.
+
+### Pivoting rows into columns — conditional aggregation with SUM(IF)
+
+When the user wants category/count data pivoted into columns (e.g. "document count per type, one column per type"), use conditional aggregation instead of BigQuery's `PIVOT` clause or dynamic SQL:
+
+```sql
+SELECT
+  acc.number,
+  acc.name,
+  COALESCE(SUM(IF(d.document_type = 'medical_report', 1, 0)), 0) AS medical_report,
+  COALESCE(SUM(IF(d.document_type = 'contract', 1, 0)), 0) AS contract,
+  COUNT(d.document_type) AS total_documents
+FROM active_clinical_cases acc
+LEFT JOIN docs d ON d.clinical_case_id = acc.id
+GROUP BY acc.number, acc.name
+ORDER BY acc.number
+```
+
+Key points:
+- `SUM(IF(category = 'value', 1, 0))` turns rows into columns — one expression per distinct value.
+- Wrap with `COALESCE(..., 0)` so cases with zero of a type show `0` instead of `NULL` (important when using LEFT JOIN).
+- Use `LEFT JOIN` so cases with zero documents still appear.
+- Add a `COUNT(...)` or `SUM(...)` total column for quick verification.
+- Discover the distinct values beforehand: `SELECT category_col, COUNT(*) FROM ... GROUP BY category_col ORDER BY 2 DESC`.
+- This approach is verbose when there are many distinct values (16+ columns), but it's explicit, readable, and works in all BigQuery contexts. For truly dynamic pivot needs, consider `EXECUTE IMMEDIATE` with a generated query string.
+
+See `queries/documents/documents-by-clinical-case.sql` for a working example.
+
 ### bq-run.sh flag syntax — space-separated, not `=` syntax
 
 `bq-run.sh` uses a manual argument parser that does NOT accept `--flag=value` syntax. Always use space-separated flags:
@@ -195,7 +358,34 @@ The `clinicians` array element has a `clinician_id` field (not `id`). The `clini
 
 This applies to `--env` and `--format` alike.
 
-## GCP project reference
+### `bq query` CLI treats `--` in SQL comments as command-line flags
+
+The `bq query` command parses its arguments before passing the query string to BigQuery. SQL line comments (`--`) in the query text are interpreted as `bq` flag markers, causing `FATAL Flags parsing error: Unknown command line flag '...'`. This happens both with inline `bq query 'SELECT ...'` and with `$(cat file.sql)`.
+
+**Fix — strip comments before passing to `bq`:**
+
+```sh
+# Dry-run validation with comment stripping
+sed 's/--.*//' queries/pei/my-query.sql | bq query --use_legacy_sql=false --dry_run
+
+# Full execution (into a temp file, then pipe)
+sed 's/--.*//' queries/pei/my-query.sql > /tmp/query_no_comments.sql
+bq query --use_legacy_sql=false --format=prettyjson < /tmp/query_no_comments.sql
+```
+
+Alternatively, use `< file.sql` instead of `$(cat file.sql)` — but `--` in the file still triggers the parser. The `sed` strip is the reliable approach.
+
+This does NOT apply to the Python library (`google-cloud-bigquery`), which sends the raw SQL string directly.
+
+### `agreement_id` is a dead-end FK in BigQuery
+
+Some assessment tables (e.g. `copm_forms`) have an `agreement_id` column that references the Rails `Agreement` model. **There is no `agreements` table in any GenialCare GCP project.** The UUID does not match `clinical_cases.id`, `clinical_case_disciplines.id`, or any other known table. To link assessment data back to a clinical case, use indirect paths: `tenant_id` + `submitted_by_id` → `users`, or time-window correlation with sessions. See `references/assessment-schema.md` for the COPM example.
+
+## Schema references
+
+- `references/intervention-schema.md` — intervention dataset tables (objectives, evolution checks, etc.)
+- `references/assessment-schema.md` — assessment dataset tables (COPM hierarchy, vineland, OT direct assessment, etc.)
+- `references/mapper-missing-objectives.md` — pattern for finding descriptions in N×N mappers that don't match `library_objectives`
 
 | Project | Dataset prefix | Content |
 |---------|---------------|---------|
