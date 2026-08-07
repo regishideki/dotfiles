@@ -133,6 +133,12 @@ projects/core/
 9. **Check Jbuilder views.** `app/views/` has `.json.jbuilder` files that
    define the JSON response shape. These show what fields are returned.
 
+10. **For data inspection tasks, prefer creating a snippet.** When the user asks
+    to query or look up data (e.g. "busque o último evolution check do caso X"),
+    load the `create-rails-snippet` skill and build a reusable snippet instead of
+    running queries directly via `rails runner`. The snippet is the deliverable;
+    local execution is secondary.
+
 ## Pitfalls
 
 - **Unique indexes are the real validation.** Models in this codebase often
@@ -151,7 +157,52 @@ projects/core/
 - **Use cases delegate to sub-use-cases.** A parent use case (like
   `CreateEvolutionCheck`) often delegates to child use cases based on a
   `configuration_type` or similar discriminator. Read the parent first to
-  understand the dispatch, then read the relevant child.
+  understand the dispatch, then read the relevant child. When the
+  discriminator is a `configuration_type` enum (trial_counter, checklist,
+  etc.), each child use case has its own `Dry::Validation::Contract` with
+  type-specific required/optional fields. To determine which attributes are
+  actually required vs optional in practice (especially for logical STI
+  where there's no `type` column), query BigQuery for NULL fill rates per
+  type — see `references/evolution-check-types-and-disciplines.md` for a
+  worked example.
+
+- **Logical STI (no `type` column) needs BQ to determine required fields.**
+  When a model has sub-types determined by an enum on a related record
+  (not an ActiveRecord STI `type` column), the schema.rb won't tell you
+  which fields are required per sub-type — the columns are all nullable.
+  The Dry::Validation contracts define the rules, but to verify what's
+  actually filled in production, query BigQuery:
+  `SUM(CASE WHEN col IS NOT NULL THEN 1 ELSE 0 END) AS has_col` grouped by
+  `configuration_type` and `was_assessed`. This reveals the de-facto
+  required/optional split per type. The `code-snippets` project has `bq`
+  CLI access — use `bq query --use_legacy_sql=false --format=pretty`.
+
+- **Feature docs for non-technical audiences.** When the user asks for a
+  feature analysis document that non-devs can understand ("menos técnico",
+  "para uma pessoa que não é dev"), shift the output from code-level to
+  product-level: describe what appears on screen (static data vs what the
+  user fills in), the layout order of UI elements top-to-bottom, real-world
+  examples of configurations, and a comparative table across types/variants.
+  The `/analyze-feature` command template is technical by default — the user
+  will explicitly say when they want the non-technical version. Useful
+  sources for product-level detail: `src/i18n/locales/<feature>/pt-br.json`
+  in the frontend project for Portuguese labels shown to users; the
+  `getProgramType` utility (e.g. in `EvolutionCheck/utils.ts` for
+  clinical-panel) maps disciplines to UI components; `Tooltip` and `Alert`
+  components often carry user-facing explanatory text.
+
+- **Verify behavioral claims before stating them in feature docs.** When
+  writing a feature analysis, claims like "this is mandatory" or "the system
+  checks if X exists for this case" are easy to get wrong by reading only
+  one layer. Trace the full chain: frontend navigation hook (e.g.
+  `useCheckinCheckoutFlowNavigation` — `isSkippable` tells you if it's
+  optional) → BFF resolver (which `dataSources` method is called, and on
+  which GraphQL type — `User` vs `ClinicalCase` matters for scoping) → core
+  controller (what filters are applied — `by_session_clinician` means
+  per-clinician, not per-case). Stating "obrigatória" when the page is
+  `isSkippable: true`, or "per-case" when the controller filters by
+  `clinician_id`, are exactly the kinds of errors the user will catch.
+  When in doubt, read the navigation hook AND the controller, not just one.
 
 - **Error messages are in `handle_errors` / `fail` steps.** The exact error
   message and code are typically constructed in a `fail` handler step, not
@@ -201,6 +252,10 @@ projects/core/
   snippet listed all 284 agreements with full details. One line per record
   with a `#number` prefix for easy scan; end with a summary line.
 
+- **`DictionaryRecord::Configuration#metadata_for` always returns a Hash (never nil).** The method has a `|| {}` guard in `dto.rb:25`. Calling `.dig(...)` on its return value can never raise `NoMethodError` — if you see `Hash#dig` in a stack trace involving this chain, the error is NOT in the `dig` call itself. It's either a downstream issue (the `nil` result breaks a later validation) or the `metadata` JSONB blob has an unexpected shape (e.g. `specialization_to_map` is a string instead of a hash, which would show as `String#dig`, not `Hash#dig`). Start by checking what `params[:discipline]` actually resolves to and what the DB record's `metadata` column contains.
+
+- **Compare sibling use cases when debugging.** When `create_collaborator.rb` and `update_collaborator.rb` implement similar logic, differences are diagnostic signals. Example: `create_collaborator.rb:47` uses `.dig("specialization_to_map", "name")` directly, while `update_collaborator.rb:230` uses `&.dig("specialization_to_map", "name")` with safe navigation. The `&.` was likely added as a defensive fix after a production issue — the missing `&.` in the create path may be the bug.
+
 - **Prefer use cases over raw updates for data mutation.** When a snippet
   mutates records, always check if a Trailblazer use case exists for the
   action (e.g. `Agreements::UseCases::MakeComplete` for completing agreements).
@@ -225,6 +280,34 @@ projects/core/
   same use case before writing a snippet — controllers are the canonical
   calling pattern (e.g. `clinical_agreements_controller.rb`).
 
+- **Use case business-rule guards can refuse an operation.** Some use
+  cases have validation steps that reject the operation before touching
+  the DB (e.g. `DeleteOccupationalTherapyAssessmentsRegistry` refuses if
+  the registry `completed?` — returns `invalid_deletion` end with
+  "occupational_therapy_assessments_registry is already completed"). When
+  a snippet mutates via a use case, check `ctx.success?` and surface
+  `ctx.errors` (`e[:message]`, `e[:code]`) on failure — do NOT fall back
+  to raw `destroy` / `update_column` when the use case refuses. The
+  refusal IS the business rule working correctly.
+
+- **`current_user` for snippets.** Use cases that mutate data require
+  `current_user:`. For snippets, obtain it via
+  `User.find_by(email: "dev@genialcare.com.br")` or `User.system_user`.
+
+- **`Style/StringLiteralsInInterpolation`: use double quotes inside
+  interpolation.** standardrb flags single-quoted strings inside `#{...}`
+  in a double-quoted string. Write
+  `strftime("%d/%m/%Y %H:%M")` not `strftime('%d/%m/%Y %H:%M')` when
+  inside a `"..."` string. Run `bundle exec standardrb` (direct, no Docker)
+  after writing snippets to catch this and other style issues.
+
+- **Don't over-invest in local snippet execution.** Snippets are designed
+  for `rails console` in staging/production. If local execution fails due
+  to missing environment data (tenant "genialcare" not in dev DB, Spring
+  fork errors, etc.), verify syntax with `bundle exec standardrb` and stop.
+  Do not spend multiple attempts troubleshooting quoting, Spring, or
+  missing DB records just to run locally.
+
 ## Cross-references
 
 - **`investigate-bff-flow`** — The BFF (Node.js GraphQL) layer that proxies
@@ -234,6 +317,10 @@ projects/core/
   via Pub/Sub. Load when the user asks about automated/side-effect behavior.
 - **`solid-queue-failures`** / **`solid-queue-inspect`** — For debugging
   background job failures in the core.
+- **`create-user-story` skill → `references/cross-repo-analysis.md`** — Worked
+  example of a full-stack investigation (frontend → BFF → core) for the HBJ
+  Painel Clínico feature, including the event trigger chain and the pitfall of
+  assuming replacement when the user wanted addition.
 
 ## References
 
@@ -244,3 +331,11 @@ projects/core/
   hierarchy (Embedded, NativeForm, Content, Manual), COPM phase 1→2 migration
   pattern, CreateCopm use case flow, and how to migrate legacy Embedded COPM
   agreements to NativeForm.
+- `references/evolution-check-types-and-disciplines.md` — The three
+  evolution-check types (trial_counter, checklist, without_configuration),
+  their validation rules, discipline-to-type mapping, frontend rendering
+  decision tree, BQ attribute fill-rate analysis, and useful queries.
+- `references/evolution-check-ui-components.md` — Frontend UI layer for
+  evolution checks in clinical-panel: component decision tree, i18n labels
+  (pt-br), tag colors by discipline, screen layout top-to-bottom per type,
+  scale calculation formulas, auto-save, and checkout flow.
