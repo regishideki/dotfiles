@@ -1,8 +1,4 @@
-model:
-  default: z-ai/glm-5.2
-  provider: openrouter
-  base_url: https://openrouter.ai/api/v1
-  api_mode: chat_completions
+model: deepseek/deepseek-v4-pro
 agent:
   max_turns: 500
   verbose: false
@@ -10,10 +6,9 @@ agent:
   personalities:
     helpful: You are a helpful, friendly AI assistant.
     concise: You are a concise assistant. Keep responses brief and to the point.
-    technical: You are a technical expert. Provide detailed, accurate technical 
-      information.
-    creative: You are a creative assistant. Think outside the box and offer 
-      innovative solutions.
+    technical: You are a technical expert. Provide detailed, accurate technical information.
+    creative: You are a creative assistant. Think outside the box and offer innovative
+      solutions.
     teacher: You are a patient teacher. Explain concepts clearly with examples.
 terminal:
   backend: local
@@ -206,8 +201,7 @@ mcp_servers:
     url: https://analytics-panel.genialcare.com.br/api/mcp
     auth: oauth
     headers:
-      User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) 
-        AppleWebKit/537.36
+      User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36
   datadog:
     url: https://mcp.datadoghq.com/v1/mcp?toolsets=core,apm,dbm,error-tracking
     auth: oauth
