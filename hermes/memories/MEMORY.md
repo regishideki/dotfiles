@@ -1,4 +1,4 @@
-Dotfiles via rcm at ~/dotfiles. ~/.claude and ~/.hermes symlinked, .gitignore whitelist only (Hermes 2.7GB). Custom skills tracked with per-segment un-ignore. Claude commands → Hermes skills. User: GenialCare (GitHub), pt-BR, reviewer regishideki, team capacidade-clinica.
+dotfiles via rcm (~/dotfiles). .claude/.hermes symlinked. GenialCare, pt-BR, reviewer regishideki, team capacidade-clinica.
 §
 Cron: "10m"=one-shot, "every 10m"=recurring. MCP need `hermes mcp login <name>`. Slack #product-engineers-capacidade-clinica = C06PPV63EU9 (privado), postMessage works even if conversations.list misses it.
 §
@@ -10,8 +10,6 @@ Workflow: gather all context before analysis/solutions. Save incrementally to fi
 §
 Confluence whiteboards (type: 'whiteboard') 404 on getConfluencePage. Use searchConfluenceUsingCql with type=whiteboard. Only excerpts returned; full visual content inaccessible via REST API.
 §
-Mindplace tenant name in BigQuery `tenants` table is `Care+Mindplace` (ID: a4d02a8c-4c27-41b6-80ac-3401f3964e34). Filter `t.name = 'Care+Mindplace'`; `t.name = 'mindplace'` won't match.
+BQ: Python google-cloud-bigquery c/ ADC. normalize é reserved word. Mindplace tenant='Care+Mindplace' (a4d02a8c).
 §
-BQ: Python google-cloud-bigquery c/ ADC quando bq CLI expira. Federated tables (Sheets) falham CLI. Dry-run funciona. normalize é reserved word. `sed 's/--.*//'` antes do bq query.
-§
-OT mapper: pei_track_to_occupational_therapy_objectives federated. queries/occupational-therapy-mapper/ — missing-objectives (normalize_obj 2-camadas), mapper-objective-pairs (pares IDs).
+Fable method skills installed in ~/.hermes/skills/: fable-method (7-step problem-solving loop), fable-loop (orchestrated subagent workflow), fable-judge (adversarial verification of finished work), fable-domain (generates new domain adapters). Ported from github.com/Sahir619/fable-method. References include failure-modes (18 modes), flowcharts (8 Mermaid diagrams), examples, and 8 domain adapters (marketing, research, data-analysis, business-ops, finance, legal, design-ux, devops).
