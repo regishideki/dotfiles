@@ -74,6 +74,8 @@ Antes de marcar uma task como `[x]`, execute as validações relevantes para o r
 - **core (Rails)**: `bundle exec rspec <spec_file>`, `bundle exec rubocop`
 - Sempre rode os testes do arquivo alterado, não a suite completa (a suite é grande)
 
+Para padrões de teste específicos do clinical-panel (ex: mock de authenticated user para cenários multi-tenant), consulte `references/clinical-panel-testing.md`.
+
 Se durante a execução a implementação final divergir materialmente da task original, atualize a descrição, dependências e critérios de aceite no `todo.md` antes de seguir, para que o documento continue refletindo o sistema real e não um plano já ultrapassado.
 
 Se encontrar um bloqueio (dependência externa, dúvida de escopo, decisão necessária), marque como `[!]` e descreva o bloqueio como um comentário abaixo da task no `todo.md`:
@@ -81,6 +83,18 @@ Se encontrar um bloqueio (dependência externa, dúvida de escopo, decisão nece
 - [!] [core] Criar endpoint `POST /api/x`
   > Bloqueado: endpoint depende do model Y que ainda não foi criado no repo core.
 ```
+
+### Dependência pendente com placeholder (não-bloqueante)
+
+Quando a dependência é um valor concreto que outra task ainda não produziu (ex: ID de um dashboard a ser criado manualmente, nome de um recurso externo), avalie se a task pode ser implementada com um **placeholder marcado** em vez de bloqueada. Critério: a lógica/estrutura do código não muda com o valor — apenas o valor precisa ser preenchido depois.
+
+Padrão:
+1. Implemente a task usando um valor placeholder (ex: `= 0`, `= 'TODO'`)
+2. Adicione um comentário `// TODO: substituir pelo <X> (T<id>/PEC-<n>)` apontando para a task bloqueadora
+3. Marque a task como `[x]` no `todo.md` (não `[!]`) — a implementação está completa, apenas o valor precisa ser substituído
+4. Comunique ao usuário quais placeholders precisam ser preenchidos quando a task bloqueadora concluir
+
+Isso permite que o código avance, testes sejam escritos, e o PR seja aberto — o único trabalho restante é trocar o valor literal quando a dependência externa for resolvida.
 
 ## 7. Visão de progresso
 
@@ -112,3 +126,21 @@ Ao criar jobs de monitoramento (ex: após abrir PR, monitorar CI/comentários), 
 ### MCPs precisam de login interativo
 
 Slack e Atlassian (Jira) MCPs exigem `hermes mcp login slack` e `hermes mcp login atlassian` interativos antes do uso. Em sessões CLI não-interativas, não é possível autenticar — avise o usuário para rodar esses comandos manualmente.
+
+### Atlassian MCP transitionJiraIssue — shape do parâmetro
+
+A ferramenta `mcp__atlassian__transitionJiraIssue` exige o parâmetro `transition` como um **objeto aninhado** `{ id: "X" }`, não `transitionId: "X"`. Passar `transitionId` como string plana resulta em erro de validação. Exemplo correto:
+
+```json
+{
+  "cloudId": "1e91fa41-0b59-4d11-9437-d2352fb6a18d",
+  "issueIdOrKey": "PEC-4062",
+  "transition": { "id": "61" }
+}
+```
+
+Para descobrir o ID da transição, chame `mcp__atlassian__getTransitionsForJiraIssue` primeiro e procure pelo `name` desejado (ex: "Review" → id "61", "VALIDATION" → id "51", "Done" → id "41").
+
+### Sub-task e parent story no Jira
+
+Quando uma task do `todo.md` corresponde a uma sub-task do Jira (ex: PEC-4062), mova também a parent story (ex: PEC-4035) ao mudar de status. A sub-task representa a task técnica, mas a story pai é o que o time acompanha no board. Identifique a hierarquia pelo contexto (título da story vs título da sub-task) na lista de cards atribuídos ao usuário.
