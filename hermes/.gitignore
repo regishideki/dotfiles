@@ -52,6 +52,22 @@
 !skills/productivity/deepwork/
 !skills/productivity/deepwork/**
 
+# Custom skills at skills/ root (not in a subcategory)
+!skills/create-user-story/
+!skills/create-user-story/**
+!skills/explain-diff/
+!skills/explain-diff/**
+!skills/fable-domain/
+!skills/fable-domain/**
+!skills/fable-judge/
+!skills/fable-judge/**
+!skills/fable-loop/
+!skills/fable-loop/**
+!skills/fable-method/
+!skills/fable-method/**
+!skills/ost-construction/
+!skills/ost-construction/**
+
 # ── Never track secrets or runtime state ─────────────────────────────
 # .env            — API keys and credentials
 # auth.json       — OAuth tokens
