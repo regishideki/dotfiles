@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OST — TITLE_HERE</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f5f5f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow: hidden; height: 100vh; width: 100vw; }
+
+  #canvas svg .nodeLabel { font-size: 13px !important; line-height: 1.2 !important; }
+  #canvas svg .node rect, #canvas svg .node polygon,
+  #canvas svg .node path, #canvas svg .node ellipse { stroke-width: 1.5px !important; }
+  #canvas svg .edgePath .path { stroke-width: 2.5px !important; stroke: #666 !important; }
+  #canvas svg .marker { stroke: #666 !important; fill: #666 !important; }
+  #canvas svg .cluster rect { stroke: #bbb !important; stroke-width: 2px !important; stroke-dasharray: 6 4 !important; rx: 8px !important; }
+  #canvas svg .cluster text { fill: #777 !important; font-size: 13px !important; }
+
+  .controls { position: fixed; bottom: 24px; right: 24px; display: flex; gap: 8px; z-index: 100; }
+  .controls button { width: 40px; height: 40px; border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #333; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .controls button:hover { background: #f0f0f0; }
+  .controls button.reset-btn { font-size: 13px; width: auto; padding: 0 12px; }
+  .zoom-label { display: flex; align-items: center; justify-content: center; width: 52px; height: 40px; background: #fff; color: #666; border-radius: 8px; font-size: 13px; border: 1px solid #ccc; }
+
+  .legend { position: fixed; top: 16px; left: 16px; background: rgba(255,255,255,0.95); border: 1px solid #ddd; border-radius: 8px; padding: 10px 14px; z-index: 100; display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 12px; color: #555; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-dot.outcome { background: #6d68ad; }
+  .legend-dot.metric { background: #e8e0f0; border: 1px solid #6d68ad; }
+  .legend-dot.sub { background: #fff; border: 1px solid #ccc; }
+  .legend-dot.done { background: #c8e6c9; } .legend-dot.prog { background: #fff9c4; }
+  .legend-dot.todo { background: #e0e0e0; }
+
+  .canvas-container { width: 100vw; height: 100vh; overflow: hidden; cursor: grab; }
+  .canvas-container:active { cursor: grabbing; }
+  #canvas { transform-origin: 0 0; transition: transform 0.12s ease-out; padding: 30px 40px; }
+  #canvas svg { max-width: none; height: auto; }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot outcome"></div> Outcome</div>
+  <div class="legend-item"><div class="legend-dot metric"></div> Métrica</div>
+  <div class="legend-item"><div class="legend-dot sub"></div> Sub-métrica / Oport.</div>
+  <div class="legend-item"><div class="legend-dot done"></div> Pronto</div>
+  <div class="legend-item"><div class="legend-dot prog"></div> Andamento</div>
+  <div class="legend-item"><div class="legend-dot todo"></div> Não iniciado</div>
+</div>
+
+<div class="controls">
+  <button onclick="zoomIn()">+</button>
+  <div class="zoom-label" id="zoomLabel">100%</div>
+  <button onclick="zoomOut()">−</button>
+  <button class="reset-btn" onclick="zoomReset()">↺ Fit</button>
+</div>
+
+<div class="canvas-container" id="container">
+  <div id="canvas">
+    <pre class="mermaid">
+%%{init: {'flowchart': {'nodeSpacing': 15, 'rankSpacing': 35}}}%%
+flowchart TD
+    %% PLACE YOUR MERMAID DIAGRAM HERE
+    %% Use subgraph for each metric branch
+    %% Keep labels ≤35 chars, single line
+    %% No cross-subgraph edges — pure tree
+
+    OUTCOME["🎯 OUTCOME"]
+
+    subgraph BRANCH1["📊 Branch 1"]
+        M1["M1"]
+        M1 --> O1["Opportunity 1"]
+        O1 --> S1["Solution 1"]
+    end
+
+    subgraph BRANCH2["📊 Branch 2"]
+        M2["M2"]
+        M2 --> O2["Opportunity 2"]
+        O2 --> S2["Solution 2"]
+    end
+
+    OUTCOME --> M1
+    OUTCOME --> M2
+
+    classDef ost fill:#6d68ad,color:#fff,stroke:#4a4578
+    classDef metric fill:#e8e0f0,color:#333,stroke:#6d68ad
+    classDef sub fill:#fff,color:#333,stroke:#ccc
+    classDef done fill:#c8e6c9,color:#2e7d32,stroke:#81c784
+    classDef prog fill:#fff9c4,color:#f57f17,stroke:#f9a825
+    classDef todo fill:#e0e0e0,color:#888,stroke:#ccc
+
+    class OUTCOME ost
+    class M1,M2 metric
+    class O1,O2 sub
+    class S1 done
+    class S2 prog
+    </pre>
+  </div>
+</div>
+
+<script>
+mermaid.initialize({ startOnLoad: true, theme: 'default',
+  flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis' } });
+
+// Fix node widths after render to prevent text clipping
+setTimeout(() => {
+  document.querySelectorAll('#canvas svg .node foreignObject').forEach(fo => {
+    fo.setAttribute('width', '300');
+    fo.style.overflow = 'visible';
+  });
+  document.querySelectorAll('#canvas svg .node div').forEach(d => {
+    d.style.whiteSpace = 'normal';
+    d.style.wordBreak = 'keep-all';
+    d.style.minWidth = '220px';
+  });
+}, 500);
+
+let scale = 0.48, panX = 20, panY = 10, isPanning = false, startX, startY;
+const canvas = document.getElementById('canvas');
+const container = document.getElementById('container');
+const zoomLabel = document.getElementById('zoomLabel');
+
+function updateTransform() {
+  canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  zoomLabel.textContent = Math.round(scale * 100) + '%';
+}
+function zoomIn()  { scale = Math.min(scale * 1.25, 4); updateTransform(); }
+function zoomOut() { scale = Math.max(scale * 0.8, 0.06); updateTransform(); }
+function zoomReset() { scale = 0.48; panX = 20; panY = 10; updateTransform(); }
+
+container.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = container.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, old = scale;
+  scale = e.deltaY < 0 ? Math.min(scale * 1.1, 4) : Math.max(scale * 0.9, 0.06);
+  panX = mx - (mx - panX) * (scale / old); panY = my - (my - panY) * (scale / old);
+  updateTransform();
+}, { passive: false });
+
+container.addEventListener('mousedown', (e) => {
+  if (e.target.tagName === 'BUTTON') return;
+  isPanning = true; startX = e.clientX - panX; startY = e.clientY - panY;
+});
+window.addEventListener('mousemove', (e) => { if (!isPanning) return; panX = e.clientX - startX; panY = e.clientY - startY; updateTransform(); });
+window.addEventListener('mouseup', () => { isPanning = false; });
+container.addEventListener('touchstart', (e) => { if (e.touches.length===1) { isPanning=true; startX=e.touches[0].clientX-panX; startY=e.touches[0].clientY-panY; } });
+container.addEventListener('touchmove', (e) => { if (!isPanning||e.touches.length!==1) return; panX=e.touches[0].clientX-startX; panY=e.touches[0].clientY-startY; updateTransform(); });
+container.addEventListener('touchend', () => { isPanning=false; });
+window.addEventListener('keydown', (e) => {
+  if (e.key==='+'||e.key==='=') { e.preventDefault(); zoomIn(); }
+  if (e.key==='-') { e.preventDefault(); zoomOut(); }
+  if (e.key==='0') { e.preventDefault(); zoomReset(); }
+});
+updateTransform();
+</script>
+</body>
+</html>

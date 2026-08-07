@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OST — {{TITLE}}</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow: hidden;
+    height: 100vh; width: 100vw;
+  }
+  .section-label {
+    font-size: 16px; font-weight: 600; color: #6d68ad;
+    padding: 8px 0; border-bottom: 2px solid #6d68ad;
+    margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .strategy-section { margin-bottom: 60px; }
+  .controls {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; gap: 8px; z-index: 100;
+  }
+  .controls button {
+    width: 40px; height: 40px; border: none; border-radius: 8px;
+    background: #2d2d4a; color: #e0e0ff; font-size: 20px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .controls button:hover { background: #3d3d6a; }
+  .controls button.reset-btn { font-size: 14px; width: auto; padding: 0 12px; }
+  .zoom-label {
+    display: flex; align-items: center; justify-content: center;
+    width: 52px; height: 40px; background: #2d2d4a; color: #a0a0cc;
+    border-radius: 8px; font-size: 13px;
+  }
+  .legend {
+    position: fixed; top: 16px; left: 16px;
+    background: rgba(26,26,46,0.9); border: 1px solid #333;
+    border-radius: 8px; padding: 12px 16px; z-index: 100;
+    display: flex; gap: 16px; font-size: 13px; color: #ccc;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .canvas-container { width: 100vw; height: 100vh; overflow: hidden; cursor: grab; }
+  .canvas-container:active { cursor: grabbing; }
+  .canvas-container.panning { cursor: grabbing; }
+  #canvas {
+    transform-origin: 0 0; transition: transform 0.15s ease-out; padding: 60px;
+  }
+  #canvas svg { max-width: none; height: auto; }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  {{LEGEND_ITEMS}}
+</div>
+
+<div class="controls">
+  <button onclick="zoomIn()" title="Zoom in">+</button>
+  <div class="zoom-label" id="zoomLabel">100%</div>
+  <button onclick="zoomOut()" title="Zoom out">−</button>
+  <button class="reset-btn" onclick="zoomReset()" title="Reset view">↺</button>
+</div>
+
+<div class="canvas-container" id="container">
+  <div id="canvas">
+    {{DIAGRAMS}}
+  </div>
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true, theme: 'default',
+  flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis', nodeSpacing: 30, rankSpacing: 50 }
+});
+
+let scale = 1, panX = 0, panY = 0, isPanning = false, startX, startY;
+const canvas = document.getElementById('canvas');
+const container = document.getElementById('container');
+const zoomLabel = document.getElementById('zoomLabel');
+
+function updateTransform() {
+  canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  zoomLabel.textContent = Math.round(scale * 100) + '%';
+}
+function zoomIn()  { scale = Math.min(scale * 1.25, 4); updateTransform(); }
+function zoomOut() { scale = Math.max(scale * 0.8, 0.15); updateTransform(); }
+function zoomReset() { scale = 1; panX = 0; panY = 0; updateTransform(); }
+
+container.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = container.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const old = scale;
+  scale = e.deltaY < 0 ? Math.min(scale * 1.1, 4) : Math.max(scale * 0.9, 0.15);
+  panX = mx - (mx - panX) * (scale / old);
+  panY = my - (my - panY) * (scale / old);
+  updateTransform();
+}, { passive: false });
+
+container.addEventListener('mousedown', (e) => {
+  if (e.target.tagName === 'BUTTON') return;
+  isPanning = true; startX = e.clientX - panX; startY = e.clientY - panY;
+  container.classList.add('panning');
+});
+window.addEventListener('mousemove', (e) => {
+  if (!isPanning) return;
+  panX = e.clientX - startX; panY = e.clientY - startY; updateTransform();
+});
+window.addEventListener('mouseup', () => { isPanning = false; container.classList.remove('panning'); });
+
+container.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    isPanning = true; startX = e.touches[0].clientX - panX; startY = e.touches[0].clientY - panY;
+  }
+});
+container.addEventListener('touchmove', (e) => {
+  if (!isPanning || e.touches.length !== 1) return;
+  panX = e.touches[0].clientX - startX; panY = e.touches[0].clientY - startY; updateTransform();
+});
+container.addEventListener('touchend', () => { isPanning = false; });
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn(); }
+  if (e.key === '-') { e.preventDefault(); zoomOut(); }
+  if (e.key === '0') { e.preventDefault(); zoomReset(); }
+});
+</script>
+</body>
+</html>
