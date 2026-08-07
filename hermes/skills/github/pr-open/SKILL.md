@@ -54,7 +54,17 @@ Após abrir o PR, crie os seguintes jobs usando a ferramenta `cronjob`.
 - Para limitar por horário comercial, use expressão cron: `0,30 10-18 * * 1-5` (a cada 30min das 10h às 18h30, seg a sex)
 - O parâmetro `repeat` controla quantas vezes um job recorrente executa antes de parar automaticamente
 
+### Convenção de nome dos jobs
+
+Use o padrão: `[nome-do-repo] PR#N — resumo-curto | Job N: descrição`
+
+- `nome-do-repo`: apenas o nome sem owner (`clinical-panel`, `clinical-language-models`, `core`, etc.)
+- `resumo-curto`: ≤7 palavras descrevendo o que o PR faz (extraído do título do PR)
+- Exemplo: `[clinical-panel] PR#2074 — alvos ativos no Checkin | Job 1: comentários de bots`
+- O `name` deve ser passado como parâmetro em TODAS as chamadas `cronjob action=create`.
+
 ### Job 1 — Verificar comentários de bots
+- **Name:** `[REPO] PR#N — RESUMO | Job 1: comentários de bots`
 - **Schedule:** `every 10m`
 - **Repeat:** 3
 - **Prompt:** Verificar comentários do PR com os dois comandos:
@@ -65,6 +75,7 @@ Após abrir o PR, crie os seguintes jobs usando a ferramenta `cronjob`.
 - **enabled_toolsets:** `["terminal", "file"]`
 
 ### Job 2 — Verificar CI
+- **Name:** `[REPO] PR#N — RESUMO | Job 2: monitorar CI`
 - **Schedule:** `every 10m`
 - **Repeat:** 6 (suficiente para cobrir um ciclo completo de CI)
 - **Prompt:** Verificar status do CI com `gh pr checks PR_NUMBER --repo OWNER/REPO`:

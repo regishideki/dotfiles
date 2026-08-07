@@ -65,7 +65,17 @@ Crie os jobs usando a ferramenta `cronjob`.
 - O parâmetro `repeat` controla quantas vezes um job recorrente executa antes de parar automaticamente
 - Jobs devem se auto-remover (`cronjob(action='remove', job_id='JOB_ID')`) quando a condição final for atendida (PR mergeado, etc.). Inclua `cronjob` no `enabled_toolsets`.
 
+### Convenção de nome dos jobs
+
+Use o padrão: `[nome-do-repo] PR#N — resumo-curto | Job N: descrição`
+
+- `nome-do-repo`: apenas o nome sem owner (`clinical-panel`, `clinical-language-models`, `core`, etc.)
+- `resumo-curto`: ≤7 palavras descrevendo o que o PR faz (extraído do título do PR)
+- Exemplo: `[clinical-panel] PR#2074 — alvos ativos no Checkin | Job 1: monitorar comentários`
+- O `name` deve ser passado como parâmetro em TODAS as chamadas `cronjob action=create`.
+
 ### Job 1 — Verificar comentários
+- **Name:** `[REPO] PR#N — RESUMO | Job 1: monitorar comentários`
 - **Schedule:** `0,30 10-18 * * 1-5` (horário comercial, seg a sex)
 - **Repeat:** forever (auto-remover quando PR for merged/closed)
 - **Prompt:** Verificar comentários do PR com:
@@ -76,6 +86,7 @@ Crie os jobs usando a ferramenta `cronjob`.
 - **enabled_toolsets:** `["terminal", "file", "cronjob"]`
 
 ### Job 2 — Verificar aprovação e mergear
+- **Name:** `[REPO] PR#N — RESUMO | Job 2: aprovar e mergear`
 - **Schedule:** `0,30 10-18 * * 1-5` (horário comercial, seg a sex)
 - **Repeat:** forever (auto-remover quando PR for mergeado)
 - **Prompt:** Verificar com `gh pr view PR_NUMBER --repo OWNER/REPO --json reviews,state,mergedAt`:
