@@ -48,7 +48,7 @@ The user prefers lean, readable query output. When writing SELECT columns:
 
 4. **Filter by discipline via protocol name.** Disciplines are identified by the `protocols.name` column:
    - `Fonoaudiologia` → Fono
-   - `Terapia Ocupacional` → TO
+   - `Ocupacional` → TO (note: NOT "Terapia Ocupacional" — the protocol name in BQ is just "Ocupacional")
    - `Vineland 3` → Psico
 
    Add `AND p.name = 'Fonoaudiologia'` to the join/filter on `protocols`.
@@ -262,6 +262,28 @@ for row in rows:
     print(dict(row))
 ```
 
+For quick inline queries, use the `python3 -c` one-liner pattern (faster than `<< 'PYEOF'` heredocs, avoids issues with `&` and other shell-special characters in output):
+
+```sh
+python3 -c "
+from google.cloud import bigquery
+client = bigquery.Client(project='supervision-production-8f1v')
+for row in client.query('''SELECT ... FROM ... LIMIT 10'''):
+    print(f'{row.col1}, {row.col2}')
+"
+```
+
+For multi-line queries with complex formatting, pipe from a file:
+```sh
+python3 -c "
+from google.cloud import bigquery
+client = bigquery.Client(project='supervision-production-8f1v')
+with open('queries/my-query.sql') as f:
+    for row in client.query(f.read()):
+        print(f'{row.col1}, {row.col2}')
+"
+```
+
 The Python library uses ADC automatically (`~/.config/gcloud/legacy_credentials/<account>/adc.json`). It can also inspect schemas:
 
 ```python
@@ -344,7 +366,22 @@ Key points:
 
 See `queries/documents/documents-by-clinical-case.sql` for a working example.
 
-### bq-run.sh flag syntax — space-separated, not `=` syntax
+### BigQuery table names drop Rails model prefixes
+
+Rails models declare `self.table_name` with prefixes (e.g. `intervention_library_evolution_check_configurations`), but BigQuery table names in the `intervention` dataset strip these prefixes. Examples:
+
+| Rails `table_name` | BQ table |
+|---|---|
+| `intervention_library_evolution_check_configurations` | `evolution_check_configurations` |
+| `intervention_library_objectives` | `library_objectives` |
+| `intervention_protocol_items` | `protocol_items` |
+| `intervention_protocols` | `protocols` |
+| `intervention_evolution_checks` | `evolution_checks` |
+| `intervention_objective_evolution_checks` | `objective_evolution_checks` |
+
+**Pattern:** the `intervention_` prefix is always dropped. The `library_` sub-prefix (for library-level config tables) is also dropped. When in doubt, list tables with `INFORMATION_SCHEMA` rather than guessing.
+
+### `bq-run.sh` flag syntax — space-separated, not `=` syntax
 
 `bq-run.sh` uses a manual argument parser that does NOT accept `--flag=value` syntax. Always use space-separated flags:
 
@@ -383,9 +420,34 @@ Some assessment tables (e.g. `copm_forms`) have an `agreement_id` column that re
 
 ## Schema references
 
+- `references/domain-subdomain-i18n.md` — Portuguese ↔ English domain/subdomain mapping from core i18n (for CSV imports, de-para)
 - `references/intervention-schema.md` — intervention dataset tables (objectives, evolution checks, etc.)
 - `references/assessment-schema.md` — assessment dataset tables (COPM hierarchy, vineland, OT direct assessment, etc.)
 - `references/mapper-missing-objectives.md` — pattern for finding descriptions in N×N mappers that don't match `library_objectives`
+- `references/migration-cross-match.md` — cross-match CSV import against production DB (create/update/discard analysis for data migration planning)
+- `references/debug-missing-case.md` — diagnostic query pattern for investigating why a case doesn't appear in a complex CTE query
+
+### Debugging missing cases from complex CTE queries
+
+When a case should appear in a query but doesn't (or appears with wrong status), run a parallel diagnostic battery to isolate which CTE/JOIN/condition excludes it. The pattern: run N independent queries — one per filter gate — against the specific case. See `references/debug-missing-case.md` for the template and real-world examples.
+
+### OT assessment devolutive query pitfalls
+
+Two systematic issues in queries that join `occupational_therapy_registries` with `feedback_assessment` sessions:
+
+1. **`status_devolutiva` false-negative with multiple registries.** When a case has 2+ registries, `QUALIFY ROW_NUMBER() ... ORDER BY started_at DESC` picks the most recent one. If the devolutive belongs to an older registry (its date >= older `started_at` but < newer `started_at`), the condition fails and shows "Pendente" despite a completed devolutive existing. Fix: compare against ALL registries, not just the most recent.
+
+2. `>= sas.started_at` is semantically wrong. The devolutive date condition should use `>= sas.completed_at`, not `>= sas.started_at`. Using `started_at` allows a devolutive to be counted even if the assessment hasn't finished yet. Same pitfalls apply to speech therapy queries.
+
+### Speech therapy sub-assessment FK pattern is inverted vs OT
+
+The speech therapy registry JOIN pattern is the **opposite** of OT. For OT, sub-assessment tables have a `registry_id` FK pointing to the registry. For speech therapy, the **registry** holds foreign keys (`phonological_assessment_id`, `expressive_communication_assessment_id`, etc.) pointing to each sub-assessment table's `id`. Join `sub_table.id = registry.<type>_assessment_id`, not the other way around.
+
+Additionally, AAC has no `status` column — use `CASE WHEN aac_clinical_decisions.id IS NOT NULL THEN 'completed' END` as a proxy. See `references/assessment-schema.md` for the full schema.
+
+### Speech therapy clinician role for OG
+
+The specialty consultant (OG) role for speech therapy is `speech_specialty_consultant`, **not** `speech_therapy_specialty_consultant`. Verify `clinician_role` values with `SELECT DISTINCT clinician_role FROM clinical_cases_clinicians WHERE clinician_role LIKE '%speech%'` before writing queries.
 
 | Project | Dataset prefix | Content |
 |---------|---------------|---------|
