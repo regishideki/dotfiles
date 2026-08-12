@@ -90,6 +90,17 @@ src/
      core response. This is common for embedded objects like
      `InterventionSessionable.evolutionCheck`.
 
+   - **`createdBy` / `updatedBy` field exposure**: Two patterns exist:
+     **(A) Implicit** — no field resolver; `transformResponse` converts
+     `created_by` → `createdBy` and Apollo's default resolver serves it (e.g.
+     `ClinicalCasePreferences.updatedBy`). **(B) Explicit** — a field resolver
+     with destructuring acts as a whitelist (e.g. `ComplexityScore.createdBy`).
+     Each schema defines its own user type (`UpdatedByUser`, `ComplexityScoreUser`,
+     `DocumentUser`, etc.) — there is no shared generic `User` type. These fields
+     are never in mutation inputs; the Core API sets them server-side via the auth
+     token. See `references/created-by-updated-by-bff-patterns.md` for the full
+     pattern catalog, naming convention table, and investigation checklist.
+
 7. **Check tests for behavior.** Integration tests in `src/__tests__/integration/`
    mirror the schema structure. They stub core/operational HTTP responses and
    assert the GraphQL output. Tests reveal the expected core response shapes
@@ -119,6 +130,20 @@ src/
   `sessionType` field. `EvolutionCheckConfiguration` is resolved by
   `configurationType`.
 
+## Investigation output format
+
+When the user asks for a read-only investigation ("investigue", "mapeie o
+território", "NÃO escreva código"), they expect:
+
+- A markdown file saved to a path they specify (typically under
+  `documentations/user_stories/<story-id>/investigation-bff.md`).
+- A specific section structure: Tipo de projeto, Pontos de entrada, Fluxo
+  principal, Schema GraphQL, Padrões existentes, Constraints, Dependências
+  identificadas, Pontos de atenção.
+- **No implementation decisions, no code writing** — only territory mapping.
+- After saving, return only: `Sumário salvo em <caminho>` — no preamble,
+  no summary, no follow-up questions.
+
 ## Pitfalls
 
 - **Don't assume the BFF validates.** It almost never does. If you need to know
@@ -145,3 +170,9 @@ src/
   (load `investigate-core-flow` skill). For the frontend UI layer (component
   decision tree, i18n labels, screen layout per type), see the core skill's
   `references/evolution-check-ui-components.md`.
+- For **cross-stack field tracing** — tracing whether a specific field exists
+  across all three layers (frontend → BFF → core → DB) — see the core skill's
+  `references/cross-stack-field-tracing.md` (load `investigate-core-flow` skill).
+  Includes the top-down procedure, gap synthesis table format, and patterns for
+  "who modified/created X" features (TrackCreationBy concern, two `updatedBy`
+  GraphQL shapes, create-only entities).
