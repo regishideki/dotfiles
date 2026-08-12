@@ -108,6 +108,37 @@ conditions; they are silent failure points where the chain breaks.
   it and emits `scheduling` events that clinical then consumes. The
   chain crosses packs through event topics, not direct calls.
 
+## Datastream CDC vs PubSub: two distinct data flow mechanisms
+
+The GenialCare platform has **two independent** mechanisms for flowing
+data to downstream systems. They are NOT the same and do NOT share
+payloads:
+
+1. **PubSub events** (covered above) — domain events emitted by use
+   cases via `Events::Trailblazer::EmitEvent`. The event payload
+   contains only the attributes declared in the event class. Consumers
+   are in `event_consumer_start.rb` and pack-local subscribers.
+
+2. **Google Cloud Datastream CDC** — replicates PostgreSQL table changes
+   directly to GCS
+   (`gs://genialcare-event-store-{env}/streams/database-events/core/public_{table_name}/*`),
+   which BigQuery external tables (in the **supervision** project, a
+   Dataform pipeline) read. This is how data reaches the data warehouse.
+   Datastream replicates **all DB columns** automatically — it does NOT
+   depend on event payloads.
+
+**Implication**: When a feature asks to "expose a field in CDC for
+supervision," check whether the column already exists in the DB table.
+If it does, Datastream already replicates it — the work is in the
+supervision project's Dataform definitions (creating the `_events.sqlx`
+external table and `.sqlx` transformation), NOT in the core's event
+payload. Changing PubSub event payloads only affects PubSub subscribers
+(finance, agenda, marketplace), not the supervision data warehouse.
+
+For a worked example of the supervision CDC pattern, see
+`investigate-core-flow` → `references/clinical-case-workload-investigation.md`
+(section "Supervision CDC: how data flows to the data warehouse").
+
 ## Pitfalls
 
 - **Don't search only `config/`.** The main registry is
@@ -126,6 +157,11 @@ conditions; they are silent failure points where the chain breaks.
 - **Don't trust memory for topic strings.** Always read the event class
   definition for the exact `topic_id` and `name` — they are the
   ground truth.
+- **Don't conflate PubSub events with Datastream CDC.** They are
+  independent. Adding a field to a PubSub event payload does NOT make
+  it appear in the supervision data warehouse. Conversely, a DB column
+  added to a table is automatically replicated by Datastream without
+  any event change. See the section above for details.
 
 ## References
 
