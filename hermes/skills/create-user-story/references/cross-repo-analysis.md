@@ -98,9 +98,40 @@ Horas ABA **agendadas** por disciplina já estão disponíveis no sistema:
 - **Dados podem existir em lugares inesperados**: as horas agendadas já estavam disponíveis no frontend via `child.calculatedOfficialScheduledHoursByDiscipline`, consumidas pelo componente `Schedule`, mas o `PlaytimeTogetherInfo` não as usava.
 - **Sempre verificar eventos**: entender *quando* o valor é recalculado é tão importante quanto entender *como*.
 
+## Context window management: subagents para investigação multi-repo
+
+Quando a investigação spans 3+ repos, ler código de todos na mesma context window
+degrada a qualidade do plano. O contexto fica cheio de código bruto que não precisa
+estar todo presente simultaneamente.
+
+**Técnica: orquestrador-worker com `delegate_task`**
+
+Em vez de ler arquivos de cada repo sequencialmente na mesma sessão, spawnar um
+subagent por repo via `delegate_task`. Cada subagent:
+
+1. Recebe objetivo claro: "investigue o fluxo de <feature> no repo <X>, encontre
+   pontos de entrada, fluxo principal, componentes-chave, e dependências"
+2. Explora o repo com seu próprio context window (search_files, read_file)
+3. Retorna apenas um sumário estruturado (não código bruto)
+
+O agente principal consome apenas os sumários (token-light) e sintetiza o plano.
+
+**Quando usar:** investigação que toca 3+ repos com código substancial para ler.
+Para 1-2 repos ou investigação superficial, não vale o overhead de subagents.
+
+**Quando NÃO usar:** quando os repos têm dependências circulares forte entre si
+(o subagent de um repo precisa do contexto do outro para fazer sentido). Nesse caso,
+a coordenação entre subagents é mais cara que o ganho.
+
+**Fonte:** Anthropic, "How we built our multi-agent research system" — "Subagents
+facilitate compression by operating in parallel with their own context windows,
+exploring different aspects of the question simultaneously before condensing the
+most important tokens for the lead research agent."
+
 ## Pitfalls
 
 - **Trailblazer use cases** são chamados com hash posicional (`UseCase.call({id:..., user:...})`), nunca kwargs.
 - **Eventos**: se o valor parece "mágico" (atualiza sozinho), sempre verificar `event_consumer_start.rb`.
 - **workload_type**: `RECOMMENDED_HOURS` = prescritas, `SHARED_SCHEDULE_HOURS` = HBJ calculado. Não confundir.
 - **Não assumir substituição quando é adição**: quando a discussão menciona "mudar de X para Y", confirmar se é substituir ou adicionar Y mantendo X.
+- **Context window overload**: se a investigação de 3+ repos está enchendo o contexto com código bruto, mudar para o padrão subagent (ver seção acima). Sinal de problema: o agente começa a perder informações do início da conversa ou o plano fica genérico por falta de espaço.

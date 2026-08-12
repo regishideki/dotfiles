@@ -79,7 +79,7 @@ O que explicitamente NÃO faz parte desta user story.
 
 ## Passo 5 (opcional): Análise cross-repo
 
-Se o usuário pedir para analisar os projetos envolvidos antes de decidir a solução, seguir a metodologia em `references/cross-repo-analysis.md`.
+Se o usuário pedir para analisar os projetos envolvidos antes de decidir a solução, seguir a metodologia em `references/cross-repo-analysis.md`. Esse arquivo inclui também técnicas de context window management (subagents por repo via `delegate_task`) para investigações que envolvem 3+ repos — usar quando a leitura de código de múltiplos projetos ameaçar encher o contexto.
 
 ## Pitfalls
 
