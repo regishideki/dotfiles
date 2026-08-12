@@ -90,6 +90,54 @@ projects/core/
    extending `Enum::Base` with string constants and `self.all` method.
    Used in models via `enum :status, Enum::Module.to_h`.
 
+7. **Audit fields (`created_by` / `updated_by`)**: Many models track who
+   created and/or last modified a record via FK references to `users`:
+   - **`TrackCreationBy` concern** (`app/models/concerns/track_creation_by.rb`):
+     auto-assigns `created_by` (on create, non-overridable) and `updated_by`
+     (on every save, overridable) from `Current.user`. Some models use this;
+     others define the associations manually.
+   - **Manual pattern**: `belongs_to :created_by, class_name: "User",
+     optional: true` set explicitly in use cases via
+     `current_user: current_user` param. `ClinicalCaseWorkload` follows this
+     pattern (does NOT use the concern).
+   - **`updated_by` pattern**: Used in 10+ clinical models
+     (intervention/note, session_activity, PEI program/target/strategy,
+     Documents::ClinicalCaseFile). Always `belongs_to :updated_by,
+     class_name: "User"` — set explicitly in the use case's update step
+     (e.g. `record.update(updated_by: current_user)`).
+   - **`Current`** (`app/models/current.rb`):
+     `ActiveSupport::CurrentAttributes` with `attribute :user,
+     :authenticated_user`. This is the canonical source of the current user
+     across the request cycle. `TrackCreationBy` reads from it; use cases
+     receive `current_user` as an explicit parameter.
+
+8. **Immutable resource pattern (create/discard)**: Some resources have no
+   update action — routes use `except: [:edit, :update]`. The lifecycle is
+   create → soft-delete (via `Discard`). "Modifying" a record means creating
+   a new one with a new `in_effect_since` and discarding the old one.
+   `ClinicalCaseWorkload` is the canonical example. When a feature asks for
+   "last modified by" on such a resource, clarify whether it means the
+   creator of the current record, the person who discarded the previous one,
+   or a new field to be populated on both create and discard.
+
+9. **BFF layer**: The Node.js GraphQL BFF (`projects/clinical-panel-bff/`)
+   proxies to core's JSON endpoints. When investigating a full-stack flow,
+   check `src/datasources/core/<domain>-api.js` for the HTTP calls and
+   `src/schema/<domain>/resolvers.js` for the GraphQL resolvers. The BFF
+   maps camelCase GraphQL fields to snake_case Rails params.
+
+10. **Supervision data warehouse**: The `supervision` project
+    (`projects/supervision/`) is a Dataform/BigQuery pipeline that
+    consumes CDC via **Google Cloud Datastream** — NOT PubSub events.
+    Datastream replicates PostgreSQL table changes to GCS, and BigQuery
+    external tables in Dataform read from GCS. When a feature asks to
+    "expose a field in CDC for supervision," check if the DB column
+    already exists — if so, Datastream already replicates it. The work
+    is in the supervision project's Dataform definitions, not in event
+    payloads. See
+    `references/clinical-case-workload-investigation.md` (section
+    "Supervision CDC") for the full pattern with example files.
+
 ## Investigation procedure
 
 1. **Start with search_files for the domain term.** Search content across
@@ -138,6 +186,29 @@ projects/core/
     load the `create-rails-snippet` skill and build a reusable snippet instead of
     running queries directly via `rails runner`. The snippet is the deliverable;
     local execution is secondary.
+
+11. **For pre-implementation territory mapping, return a structured report.**
+    When the user asks to "investigar" or "mapear o território" for a feature
+    (read-only, no code changes), return ONLY a structured summary with these
+    sections:
+    ```
+    ## Investigação: core
+    ### Tipo de projeto
+    ### Pontos de entrada
+    ### Fluxo principal
+    ### Modelo <ModelName>
+    ### Padrões existentes
+    ### Constraints
+    ### Dependências identificadas
+    ### Dados disponíveis
+    ### Pontos de atenção
+    ```
+    Do NOT write code, make implementation decisions, or propose solutions.
+    Map the territory: what exists, where it lives, what patterns are used,
+    what constraints apply, and what edge cases need clarification. The
+    "Pontos de atenção" section is where ambiguous requirements (e.g.
+    "last modified by" on an immutable resource) get flagged for product
+    clarification.
 
 ## Pitfalls
 
@@ -245,6 +316,27 @@ projects/core/
   to search `db/schema.rb` instead of `search_files` — the file is enormous
   and content search may not match reliably.
 
+- **search_files on symlinked projects returns empty silently.** `projects/core/`
+  (and all repos under `projects/`) are symlinks created by `sync.sh`.
+  `search_files` with `path=projects/core` may silently return 0 results
+  even when the files exist on disk. Always verify with `ls projects/core/`
+  first. Fall back to `terminal` with `find packs -name "*.rb" | xargs grep -l`
+  when you get empty results from a symlinked path.
+
+- **Models live in `packs/`, not `app/models/`.** The core is a pack-based
+  Rails monolith (Packswerk). Only a handful of top-level models live in
+  `app/models/` — everything else is under `packs/<pack>/app/models/` with
+  deep namespacing. To find a model by class name, use `find packs -name
+  "*.rb" | xargs grep -l "ClassName"`. A directory listing of `app/models/`
+  will miss 90%+ of the models.
+
+- **search_files can fail on patterns with dots/special chars.** When
+  searching for topic strings like `clinical_case.workload` (containing
+  dots), `search_files` with `output_mode="content"` may raise a JSON
+  parse error. Fall back to `terminal` with `grep -rn 'pattern' --include='*.rb'`
+  instead. The `files_only` output mode is more resilient but still
+  occasionally fails — `grep` via `terminal` is the reliable fallback.
+
 - **Keep snippet output concise.** When writing investigation or migration
   snippets that process many records, print summary counts and only anomalies
   (duplicates, missing cases, errors) — not a full dump of every record.
@@ -314,7 +406,9 @@ projects/core/
   to this core backend. If the user is investigating a full-stack flow, load
   both skills.
 - **`trace-event-flows`** — For tracing event-driven cascades across packs
-  via Pub/Sub. Load when the user asks about automated/side-effect behavior.
+  via Pub/Sub. Also documents the distinction between PubSub events and
+  Datastream CDC (supervision data warehouse). Load when the user asks
+  about automated/side-effect behavior or CDC/data warehouse flows.
 - **`solid-queue-failures`** / **`solid-queue-inspect`** — For debugging
   background job failures in the core.
 - **`create-user-story` skill → `references/cross-repo-analysis.md`** — Worked
@@ -339,3 +433,12 @@ projects/core/
   evolution checks in clinical-panel: component decision tree, i18n labels
   (pt-br), tag colors by discipline, screen layout top-to-bottom per type,
   scale calculation formulas, auto-save, and checkout flow.
+- `references/clinical-case-workload-investigation.md` — Full investigation
+  of `ClinicalCaseWorkload`: model fields, use cases (create/discard),
+  events, BFF resolvers, JSON output, audit field patterns, and the
+  ambiguity of "last modified by" on an immutable (create/discard only)
+  resource.
+- `references/enum-migration-checklist.md` — Which files to change when
+  adding a new enum value (domain, subdomain, etc.): 3 files across core +
+  clinical-panel. Also covers the CSV→i18n→BQ→enum discovery pattern for
+  mapping Portuguese values to English enum constants.
