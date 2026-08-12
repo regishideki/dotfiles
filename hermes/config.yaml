@@ -1,4 +1,6 @@
-model: deepseek/deepseek-v4-pro
+model:
+  aliases:
+    son: openrouter/anthropic/claude-sonnet-5
 agent:
   max_turns: 500
   verbose: false
