@@ -342,6 +342,105 @@ creates workloads with `current_user: dev_user` where `dev_user` returns
 flows have `created_by = system_user`, not a real clinician. Exposing
 `created_by` for these records will show the system user's name.
 
+## Practical HBJ hours: 3-way Core/BFF/Frontend split, duplication analysis, and backfill
+
+Follow-up feature on the same model: exhibit a *practical* HBJ hours
+direcional (based on scheduled ABA hours) alongside the existing *ideal*
+one (`shared_schedule_hours`, based on prescribed ABA hours), without
+changing the existing calculation. Decision made: persist the new value as
+a new `ClinicalCaseWorkload.workload_type` (not compute-on-read), keeping
+both the ideal and practical rows so the frontend can decide to show one,
+the other, or both, and so the feature can be rolled back cleanly by just
+not reading the new `workload_type` anymore.
+
+### Three implementation options compared
+
+| Option | Where the arithmetic runs | Core deploy needed? |
+|---|---|---|
+| B | New Core endpoint/decorator method — full calculation in Ruby | Yes (new endpoint) |
+| C | BFF resolver — Core exposes `current_module`, BFF does `scheduled_hours * percentage` | Yes (expose one field) |
+| D | Frontend — BFF exposes raw scheduled hours only, frontend infers module + percentage | No |
+
+### Duplication is per-business-rule, not per-option
+
+Don't score "does this option duplicate business logic" as a single
+yes/no — there are two SEPARATE pieces of logic in play here, and each
+option handles them differently:
+
+1. **"Which module is the child currently in"** — a non-trivial derived
+   value. `PeiTrack#calculate_progress` finds the first incomplete module
+   progress (or the last one if all are complete) and persists it as
+   `current_module_id`. This is NOT exposed anywhere in the API today
+   (`GET .../pei_tracks.json` only returns `module_progresses`, not
+   `current_module`).
+   - Option B: uses `pei_track.current_module` directly in Ruby — no
+     duplication.
+   - Option C: Core adds `current_module` to the PeiTrack JSON (1-line
+     `as_json` change) — no duplication, just exposing what already exists.
+   - Option D: frontend has no `current_module` field to read, so it would
+     have to REIMPLEMENT the "first incomplete, else last" logic against
+     `moduleProgresses` — real duplication of non-trivial logic.
+
+2. **The percentage-per-module constant table**
+   (`MODULE_PERCENTAGES = {module_1: 0.15, module_2: 0.40, module_3: 0.60}`,
+   defined in `CalculateSharedScheduleHoursWorkload`) — a separate, simpler
+   piece of business logic.
+   - Option B: applies the constant in Ruby where it's already defined — no
+     duplication.
+   - Option C: the BFF resolver does `scheduledAba * percentage`, so this
+     table would need to be re-declared in JavaScript in the BFF — **this
+     IS duplication**, easy to miss if you only look at option C's "avoids
+     re-deriving the module" win and stop there.
+   - Option D: same table duplicated again, now in TypeScript in the
+     frontend.
+
+**Mitigation for Option C** (if going this route instead of B): have Core
+resolve and expose the *percentage value itself* for the current module
+(not just its name/alias), so the BFF only multiplies two numbers it's
+given — no percentage table anywhere outside Core. This makes C equivalent
+to B in terms of "zero duplicated business rules", with the only
+difference being where the final multiplication happens.
+
+**General takeaway:** when comparing implementation options for a
+calculation with more than one business rule inside it (e.g. "look up X,
+then apply constant table Y to it"), enumerate each rule and check it
+against every option separately. A middle-ground option can look
+duplication-free if you only trace the more complex rule and forget to
+re-check the simpler one.
+
+### Backfill question (persisted, historical cases)
+
+Since the new value is *persisted* (new `workload_type` on
+`ClinicalCaseWorkload`, decided instead of compute-on-read specifically to
+preserve rollback-ability and let the frontend choose show-both vs
+show-one), it only gets created going forward, driven by the same 3 events
+that already trigger `CalculateSharedScheduleHoursWorkload`
+(`clinical_case_preferences_updated`, `workload_created` for ABA,
+`pei_track_module_updated`). Existing clinical cases will show nothing for
+the new `workload_type` until one of those events fires again for them.
+
+The existing precedent for this exact problem is
+`core/lib/tasks/create_shared_schedule_workloads.rake` — written when
+`shared_schedule_hours` itself was launched, to backfill it for cases that
+already existed. It:
+- Filters to eligible cases (`real_cases`, active, `can_share_schedule:
+  true`, has an ABA `recommended_hours` workload).
+- Runs dry-run by default (prints per-module counts), only writes with
+  `[true]` confirmation arg.
+- Calls the calculation use case per case inside one transaction, rolling
+  back everything if any case raises.
+
+A rake for the practical-hours backfill would follow the same shape but
+call the NEW use case, and its eligibility filter needs to check "has
+scheduled ABA hours" (`calculated_official_scheduled_hours_by_discipline["aba"]
+> 0`) rather than "has a prescribed ABA workload" — a different condition
+than the existing rake uses, because practical hours are driven by
+scheduling data, not prescription data. Always ask explicitly whether the
+user wants this retroactive backfill (do it now, historical cases get the
+value immediately) or is fine letting it populate naturally as PEI/workload
+events fire — the two give a very different day-one experience and neither
+is obviously correct without asking.
+
 ## CalculateWorkload: current_user threading
 
 `CalculateWorkload` (triggered by `vineland_report_created` event) calls

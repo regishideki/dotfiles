@@ -58,6 +58,32 @@ for f in $(grep -rl 'isPartOfGenialTenant' src/ --include='*.tsx' --include='*.t
 done
 ```
 
+## Testando componentes que dependem de react-hook-form (useFormContext)
+
+Componentes de campo dentro de um form (ex: `CheckoutFields/*Fields.tsx`) usam `useFormContext()` e por isso precisam de um `FormProvider` no teste — sem ele, `useFormContext()` retorna `undefined` e o componente quebra ao acessar `control`/`formState`.
+
+Padrão mínimo (visto em `PhysicalConditionsAssessment.spec.tsx` e replicado em `ClinicianParticipantsFields.spec.tsx`):
+
+```tsx
+import { render, screen } from 'test-utils';
+import { FormProvider, useForm } from 'react-hook-form';
+import { ReactNode } from 'react';
+
+const Wrapper = ({ children }: { children: ReactNode }) => {
+  const methods = useForm({ defaultValues: { clinicianIds: ['id-1', 'id-2'] } });
+  return <FormProvider {...methods}>{children}</FormProvider>;
+};
+
+it('unchecks on click', async () => {
+  render(<Wrapper><MyFieldComponent /></Wrapper>);
+  await userEvent.click(screen.getByRole('checkbox', { name: 'Label' }));
+  expect(screen.getByRole('checkbox', { name: 'Label' })).not.toBeChecked();
+});
+```
+
+- `defaultValues` no `useForm` do Wrapper é como você semeia o valor inicial do campo controlado (equivalente ao que `Checkout.tsx` faz via `methods.setValue` num `useEffect` após a query carregar).
+- Para testar "renderiza nada" (early return quando a lista está vazia), não use `toBeEmptyDOMElement()` no container do `render` do `test-utils` — o wrapper de toast/notification do `test-utils` sempre injeta um `<div role="region">` vazio no DOM, então o container nunca fica realmente vazio. Prefira `expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()` ou asserção equivalente sobre o conteúdo esperado ausente.
+
 ## Validação por repo
 
 - **clinical-panel**: `yarn vitest run <test-file>`, `yarn lint:fix`, `yarn types` (tsc --noEmit)

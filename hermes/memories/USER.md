@@ -1,9 +1,11 @@
 Prefere output BQ enxuto: sem prefixos de alias, sem IDs internos, sem colunas extras. Dados nível library_objective, não per-clinical-case. Tenant names explícitos, nunca "all".
 §
-When a console snippet errors, fix the SNIPPET — do not patch repo code. Verify correct usage by reading how specs call the same code before touching the repo. User corrected this firmly: 'não é um bug do código do repo!'
+Console/shell snippets: fix SNIPPET not repo code, follow EXACT pattern of working ones. User iterates fast: copy+test, reports exact error. Prefer concise output (summary counts + exceptions, not full dumps). ClinicalCaseWorkload#hours is :interval — pass Duration (4.hours) not .to_i.
 §
-ClinicalCaseWorkload#hours is a PostgreSQL :interval attribute. before_save calls hours.in_minutes — pass 4.hours (Duration), not 4.hours.to_i.
+Diferenças de contagem bq CLI vs Metabase: (1) filtros viram implicit INNER JOIN, (2) service account vê menos tenants, (3) CACHE STALE — forçar fresh run via /api/dataset antes de debugar.
 §
-When writing Rails console snippets that produce output, keep it focused and concise. User said 'ficou confuso de analisar pois tem muitos dados' when a snippet listed all 284 agreements with full details. Prefer summary counts + only the exceptional/anomalous cases in the output (e.g. duplicates, missing records), not a full dump of every record.
+Metabase: RAW única. PT-BR, full-width, drill-down crossfilter, cores Psico. Series: Aderente(bottom)/Sem obj(mid)/Não Aderente(top). Sort "Não Aderente" via UI. Filtros MBQL só via dashboard endpoint.
 §
-Shell snippets: seguir EXATAMENTE padrão dos que funcionam (kubectl cp path relativo, nome CSV simples, cp do CSV pra custom_gitignore/migrations/ antes). NÃO inventar variações — se desviar, quebra em produção. User itera rápido: copia e testa, reporta erro exato.
+Security+LGPD: gitignore env/creds before writing; anonymize patient/therapist names in committed/published artifacts. English comments. Tooling: check .nvmrc+yarn.lock, yarn not npm.
+§
+PRs: only task-relevant changes — no drive-by commits. Docs go to main, not PRs. Self-contained docs per repo. PR descriptions in pt-BR for GenialCare repos. Makefile/code comments in English. Never commit secrets — verify .gitignore covers sensitive files and document how to fill gitignored configs in README.

@@ -128,6 +128,20 @@ facilitate compression by operating in parallel with their own context windows,
 exploring different aspects of the question simultaneously before condensing the
 most important tokens for the lead research agent."
 
+### Recuperando sumários truncados (delegate_task batch)
+
+O resultado de um batch de `delegate_task` chega com `[SUMMARY TRUNCATED]` quando é grande (só
+head + tail). Os sumários completos ficam em `~/.hermes/cache/delegation/subagent-summary-<N>-<timestamp>.txt`
+(um por task) e o trace em `~/.hermes/cache/delegation/live/<delegation_id>/task-<N>.log`. Leia
+esses arquivos com `read_file` (paginar via offset/limit) antes de sintetizar — o "miolo"
+omitido costuma ter justamente o essencial (relação entre models, endpoints, vínculos).
+
+### Dê perguntas numeradas e específicas aos subagents
+
+Em vez de "investigue o fluxo de X", entregue N perguntas numeradas e pontuais (ex: "1) onde
+estão os models; 2) qual FK liga A e B; 3) já existe vínculo hoje?"). Objetivo vago devolve
+sumário vago — e perguntas específicas deixam claro o que faltou quando o sumário vem truncado.
+
 ## Pitfalls
 
 - **Trailblazer use cases** são chamados com hash posicional (`UseCase.call({id:..., user:...})`), nunca kwargs.
@@ -135,3 +149,5 @@ most important tokens for the lead research agent."
 - **workload_type**: `RECOMMENDED_HOURS` = prescritas, `SHARED_SCHEDULE_HOURS` = HBJ calculado. Não confundir.
 - **Não assumir substituição quando é adição**: quando a discussão menciona "mudar de X para Y", confirmar se é substituir ou adicionar Y mantendo X.
 - **Context window overload**: se a investigação de 3+ repos está enchendo o contexto com código bruto, mudar para o padrão subagent (ver seção acima). Sinal de problema: o agente começa a perder informações do início da conversa ou o plano fica genérico por falta de espaço.
+- **No BFF, o contrato real de uma mutation/query vive no `.graphql` (`type-defs.graphql`), não no resolver nem no datasource.** Resolvers e datasources (`schema/**/resolvers.js`, `datasources/**/*.js`) só mostram *quais* campos são repassados ao core, mas os campos que o frontend pode de fato enviar/receber (obrigatórios, opcionais, tipos) estão definidos nos `input`/`type` do `.graphql`. Ao investigar "que dado dá para mandar nessa mutation", sempre buscar o `input <NomeDoInput>` no `.graphql` antes de concluir pela leitura do resolver — evita relatar como "não suportado" um campo que só não estava sendo usado no fluxo específico analisado.
+- **Duas features parecidas podem coexistir com maturidade bem diferente**: ao investigar um domínio (ex.: "participantes de sessão"), procurar por mais de um fluxo/entry-point antes de concluir que a feature não existe — o padrão comum na stack GenialCare é ter uma tela "principal" mais simples e uma tela "alternativa" (menu de contexto, ação secundária) mais completa ou legada. Buscar por todos os componentes/telas que tocam o mesmo campo de domínio (ex.: `clinicianIds`, `participants`) nas 3 camadas antes de decidir se é implementação nova ou correção de bug em feature existente.

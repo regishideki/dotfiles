@@ -174,6 +174,8 @@ file as directed).
   description, (4) `test_*.sqlx` — add to mock inputs and expected output.
   All 4 go in the same PR — none makes sense without the others.
 
+- **Dataform schedules are NOT in the repo — don't confuse them with the deploy `cronjob`.** If a user asks "em que horários roda o job do Dataform?", the schedule is configured in the GCP Dataform console (Workflow Configurations → Schedule), not versioned anywhere in the project. `workflow_settings.yaml` holds only dataset/project/vars/service-accounts — no schedule field. The only `cronjob.schedule` (e.g. `deploy/base/supervision/config/schema.yaml` → `"0 3 * * *"`) is a **Kubernetes CronJob running a Dataflow pipeline** (`intervention_main.py` / `assessment_main.py` via `--runner=DataflowRunner`), a separate job from Dataform. `deploy/base/<name>/manifests/dataform.yaml` only enables the Dataform API + IAM grants — it defines no schedule. To get actual times, read the `WorkflowConfig` via `gcloud`/Dataform API for the env's project id (from `deploy/<env>/<name>/config/data.yaml` → `gcp.id`), or point the user to the console.
+
 - **`ensureTenantField` auto-injects `tenant_id`.** The function
   `renderSchemaExternalTable()` in `includes/functions.js` automatically
   appends `tenant_id` (STRING) to the payload struct if not explicitly

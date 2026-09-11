@@ -1,6 +1,9 @@
 model:
   aliases:
     son: openrouter/anthropic/claude-sonnet-5
+    ds: openrouter/deepseek/deepseek-v4-pro-0813
+  default: deepseek/deepseek-v4-pro-0813
+  provider: openrouter
 agent:
   max_turns: 500
   verbose: false
@@ -55,6 +58,10 @@ compression:
   idle_compact_after_seconds: 0
 prompt_caching:
   cache_ttl: 5m
+auxiliary:
+  vision:
+    provider: openrouter
+    model: google/gemini-2.5-flash
 display:
   compact: false
   busy_input_mode: interrupt
@@ -74,6 +81,8 @@ stt:
     model: base
   openai:
     model: whisper-1
+voice:
+  record_key: ctrl+y
 memory:
   memory_enabled: true
   user_profile_enabled: true
@@ -89,12 +98,23 @@ skills:
     - airtable
     - apple-notes
     - apple-reminders
+    - arxiv
     - ascii-art
     - ascii-video
+    - baoyu-infographic
     - blogwatcher
     - codex
+    - comfyui
+    - confluence-research
+    - deepwork
+    - design-md
     - docx
+    - dogfood
+    - evaluating-llms-harness
     - findmy
+    - gif-search
+    - github-issues
+    - google-workspace
     - himalaya
     - huggingface-hub
     - imessage
@@ -103,28 +123,47 @@ skills:
     - manim-video
     - maps
     - nano-pdf
+    - node-inspect-debugger
     - notion
+    - obsidian
     - ocr-and-documents
     - opencode
     - openhue
+    - p5js
+    - pdf
     - polymarket
+    - popular-web-designs
     - powerpoint
     - pretext
+    - python-debugpy
+    - research-paper-writing
     - serving-llms-vllm
     - simplify-code
     - sketch
     - songsee
     - songwriting-and-ai-music
+    - spike
+    - teams-meeting-pipeline
     - touchdesigner-mcp
     - weights-and-biases
     - xlsx
     - xurl
     - youtube-content
+approvals:
+  mcp_reload_confirm: false
+  destructive_slash_confirm: false
+command_allowlist:
+  - SQL DROP
+  - git reset --hard (destroys uncommitted changes)
 code_execution:
   timeout: 300
   max_tool_calls: 50
 streaming:
   enabled: false
+onboarding:
+  seen:
+    tool_progress_prompt: true
+    busy_input_prompt: true
 updates:
   pre_update_backup: false
   backup_keep: 5
@@ -178,14 +217,6 @@ platform_toolsets:
 known_plugin_toolsets:
   cli:
     - spotify
-onboarding:
-  seen:
-    tool_progress_prompt: true
-    busy_input_prompt: true
-auxiliary:
-  vision:
-    provider: openrouter
-    model: google/gemini-2.5-flash
 mcp_servers:
   atlassian:
     url: https://mcp.atlassian.com/v1/mcp
@@ -208,7 +239,41 @@ mcp_servers:
     url: https://mcp.datadoghq.com/v1/mcp?toolsets=core,apm,dbm,error-tracking
     auth: oauth
     enabled: true
-voice:
-  record_key: ctrl+y
-approvals:
-  destructive_slash_confirm: false
+
+# ── Security ──────────────────────────────────────────────────────────
+# Secret redaction is ON by default — strings that look like API keys,
+# tokens, and passwords are masked in tool output, logs, and chat
+# responses before the model or user ever sees them. Set redact_secrets
+# to false to disable (e.g. when developing the redactor itself).
+# tirith pre-exec scanning is enabled by default when the tirith binary
+# is available. Configure via security.tirith_* keys or env vars
+# (TIRITH_ENABLED, TIRITH_BIN, TIRITH_TIMEOUT, TIRITH_FAIL_OPEN).
+#
+# security:
+#   redact_secrets: true
+#   tirith_enabled: true
+#   tirith_path: "tirith"
+#   tirith_timeout: 5
+#   tirith_fail_open: true
+
+# ── Fallback Model ────────────────────────────────────────────────────
+# Automatic provider failover when primary is unavailable.
+# Uncomment and configure to enable. Triggers on rate limits (429),
+# overload (529), service errors (503), or connection failures.
+#
+# Supported providers:
+#   openrouter   (OPENROUTER_API_KEY)  — routes to any model
+#   openai-codex (OAuth — hermes auth) — OpenAI Codex
+#   nous         (OAuth — hermes auth) — Nous Portal
+#   zai          (ZAI_API_KEY)         — Z.AI / GLM
+#   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
+#   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)
+#   minimax      (MINIMAX_API_KEY)     — MiniMax
+#   minimax-cn   (MINIMAX_CN_API_KEY)  — MiniMax (China)
+#   bedrock      (AWS IAM / boto3)     — AWS Bedrock (Converse API)
+#
+# For custom OpenAI-compatible endpoints, add base_url and key_env.
+#
+# fallback_model:
+#   provider: openrouter
+#   model: anthropic/claude-sonnet-4

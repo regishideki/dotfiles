@@ -64,9 +64,6 @@ conflicted() {
   vim +Conflicted
 }
 
-# Local config
-[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
-
 export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
 
 # aliases
@@ -98,3 +95,6 @@ export PATH="/Users/regishattori/.antigravity/antigravity/bin:$PATH"
 
 # deepwork: ~/bin no PATH
 export PATH="$HOME/bin:$PATH"
+
+# Local config (moved to end so nvm's PATH segment isn't shadowed by ~/.local/bin etc.)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local

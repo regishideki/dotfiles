@@ -16,6 +16,22 @@ the operational kubectl runbook that recur every time.
 
 ## Authoring gotchas (all bit in real sessions)
 
+0. **A new persisted enum/type value on an existing model needs a backfill
+   rake if historical records should get it too.** When a feature adds a
+   new discriminator value (e.g. a new `workload_type` on
+   `ClinicalCaseWorkload`) that's populated by an existing event-driven
+   calculation use case, the use case only fires for records going forward
+   — existing records stay empty until one of the trigger events happens
+   to recompute them. `core/lib/tasks/create_shared_schedule_workloads.rake`
+   is the canonical precedent: dry-run by default, scoped `WHERE` filter to
+   eligible records, calls the use case per record inside one transaction
+   with rollback-all-on-any-failure. See
+   `investigate-core-flow` skill → `references/clinical-case-workload-investigation.md`
+   (§ "Practical HBJ hours") for a worked comparison of what the new rake's
+   eligibility filter needs to differ on. Always ask the user explicitly
+   whether they want a retroactive backfill or are fine letting the value
+   populate naturally as the trigger events fire again — don't assume either.
+
 1. **A rake task body is a BLOCK, not a method.** `return` inside `task ... do ... end`
    raises `LocalJumpError: unexpected return`. To exit early (e.g. after a dry-run), use
    `next`, not `return`.

@@ -139,3 +139,65 @@ all 3 systems (core migration + model + jbuilder → BFF type-defs → frontend
 query + type + component). The `created_by_id` column already in the DB could
 serve as a starting point if "last modified" is acceptable as "created by"
 (given workloads are create-only).
+
+## Worked example: discarded PEI objectives still showing in Fono dropdown
+
+**Report**: User ran a rake to soft-delete (discard) 30 speech-therapy
+(Fono) library objectives, but they kept appearing in the clinical-panel PEI
+objective form dropdown. User suspected "maybe this bug was already fixed
+for the other disciplines' forms" — that hint was the key to solving it fast.
+
+**Investigation path** (bottom-up this time, since the discard action itself
+was already confirmed to have run):
+
+1. Confirmed the discard actually happened at the DB level: found the rake
+   task `projects/core/lib/tasks/speech_therapy/import_objectives.rake` and
+   the git history (`speech_therapy:import_objectives`) — it calls
+   `obj.discard!` correctly on `Intervention::Pei::Library::Objective`.
+2. Confirmed exposure end-to-end: `Intervention::Protocol::ProtocolItem`
+   model → `has_many :library_objectives`, no `.kept` scope (intentional —
+   backend exposes both kept and discarded, expects the client to filter).
+   Jbuilder (`_protocol_item.json.jbuilder`) exposes `discarded_at` on both
+   the singular `library_objective` and the plural `library_objectives`
+   list. BFF GraphQL query (`GetPeiFormDataByProtocol`) already requests
+   `discardedAt` on `libraryObjectives`. So the data reaches the frontend
+   correctly — not a backend bug.
+3. Found the sibling form hooks under
+   `clinical-panel/src/components/PEI/Objective/Form/components/`: one hook
+   per discipline/protocol type — `VinelandForm/useVinelandForm.ts`,
+   `OccupationalForm/useOccupationalForm.ts`,
+   `OccupationalTherapyForm/useOccupationalTherapyForm.ts`,
+   `SpeechTherapyForm/useSpeechTherapyForm.ts`. All four build a dropdown
+   options list from the same `protocolItem.libraryObjectives` shape.
+4. Diffed them: Vineland, Occupational, and OccupationalTherapy all have
+   `.filter((item) => !item.discardedAt)` before mapping to dropdown
+   options. `SpeechTherapyForm/useSpeechTherapyForm.ts` was missing that
+   filter — it went straight from `.flatMap((item) => item.libraryObjectives)`
+   to building options, with no discard check.
+5. `git log -S"discardedAt" -- <the 4 hook files>` confirmed: the filter was
+   added to the other three in earlier commits; the Fono hook was rewritten
+   later (`4670ae2db`, "rename protocolItem to libraryObjective") without
+   ever re-adding the guard.
+
+**Conclusion**: One-line fix in the outlier hook —
+`.flatMap((item) => item.libraryObjectives)?.filter((item) => !item?.discardedAt)`
+in `SpeechTherapyForm/useSpeechTherapyForm.ts`. No backend or BFF change
+needed. The lesson: when the user says a fix "should have already applied
+elsewhere," go find the elsewhere and diff against it before re-deriving
+the fix from scratch.
+
+**Shipping the fix once found via sibling-diff**: don't just patch the code —
+add a regression test using the SAME factory/pattern as the sibling hook's
+existing test file (here: build a `libraryObjectiveFactory` item with
+`discardedAt` set, assert it's excluded from the options list). Then verify
+with the project's actual scripts before opening the PR, not just the raw
+test runner:
+```bash
+yarn run lint <changed-dir>     # not just vitest — catches style/unused-import issues
+yarn run test:ci <changed-dir>  # scoped run is enough pre-PR; full suite is optional
+yarn run types                  # tsc --noEmit has no path scoping, always runs full project
+```
+Ship as a draft PR (`gh pr create --draft`) on a `fix/<slug>` branch with a
+body that states the root cause and the sibling comparison — reviewers on
+this codebase expect the "why this file specifically" context, not just the
+diff.
