@@ -28,6 +28,12 @@ alias docspec="doccore rspec"
 alias preparetest="docker exec -it -e HANAMI_ENV=test core hanami db prepare"
 alias preparedev="doccore hanami db prepare"
 alias k="kubectl"
+
+# GCP: alternar entre conta pessoal e a SA de automação (regis-automation)
+# O cache do plugin GKE é limpo para não manter identidade antiga.
+alias gcp-me='gcloud config set account regis@genialcare.com.br && rm -f ~/.kube/gke_gcloud_auth_plugin_cache'
+alias gcp-sa='gcloud auth activate-service-account --key-file="$HOME/.config/gcloud/regis-automation-sa-key.json" && rm -f ~/.kube/gke_gcloud_auth_plugin_cache'
+
 alias uuid="uuidgen | tr -d '\n' | tr '[:upper:]' '[:lower:]'"
 
 alias brew="arch -arm64 brew"
