@@ -134,6 +134,7 @@ Track the PID in a file for `clinical-down` to kill. Use `kill -0 $(cat $(PID))`
 ## Reference files
 
 - `references/core-env-investigation.md` — investigation of core env vars needed for local dev (`FIREBASE_SERVICE_ACCOUNT`, `SERVER_ENV`, `ACTIVE_STORAGE_TYPE`): symptoms, root causes, where each is set on GCP, and local fixes.
+- `references/seed-minimal-data-for-feature-testing.md` — seed a minimal domain-data chain (tenant → protocol → library objectives → clinical case → PEI → registry) via `rails runner` to test a single core feature end-to-end WITHOUT the full remote DB import. Gotchas: `User` has `first_name`/`last_name` (not `name`); `ClinicalCase` needs `Preferences::ClinicalCasePreferences.create_default`; `Enum::Domains`/`Subdomains` take string values (print `to_h` to map the v2 CSV subdomains); and `UseCase.call(params:, current_user:)` kwargs (NOT a positional hash).
 
 ## Validation checklist for local dev
 
@@ -158,7 +159,7 @@ When verifying a local dev environment works end-to-end (after `make clinical-up
 
 - **`.env.local` means different things across projects**: In the BFF (Node), `.env.local` is loaded by custom code in `src/config/index.js` based on `NODE_ENV=local` — it works as expected. In clinical-panel (Vite), `.env.local` is a generic override that is overridden *by* `.env.development` (the mode-specific file). Same filename, different semantics. The `--mode dev-local` approach sidesteps this entirely.
 
-- **Port 5050 conflicts from stale Vite processes**: If a previous Vite instance didn't get killed properly (no pidfile, or the PID was reused), `npm start` will silently fall back to port 5051 with only a small log message. Always check `lsof -i :5050` before starting, and use the pidfile-based kill in `make clinical-down`.
+- **Port 5050 conflicts from stale Vite processes**: If a previous Vite instance didn't get killed properly (no pidfile, or the PID was reused), `npm start` will silently fall back to port 5051 with only a small log message. Always check `lsof -i :5050` before starting, and use the pidfile-based kill in `make clinical-down`. **The conflict is NOT always a stale process from the same repo**: the user keeps two clinical-panel checkouts (`clinical-panel` and `clinical-panel-2`), both hardcoding `port: 5050` in `vite.config.ts`. A live `yarn start` in the *other* checkout silently holds 5050 and pushes yours to 5173 with no error — `lsof -nP -iTCP:5050 -sTCP:LISTEN` will show the offender's full path (e.g. `.../clinical-panel/node_modules/.bin/vite`, a different repo dir than the one you're in). Don't assume a "5173" binding means your config is wrong; check who owns 5050 first.
 
 - **Multiple stale Vite processes and Auth0 login button doing nothing on wrong port (outside the Makefile too)**: This also happens with plain `yarn start` / `yarn start:local` run directly by the user (no Makefile), across separate terminal sessions over multiple days — confirmed recurrence: 5 stale `vite` processes accumulated over several days occupied ports 5050-5054 sequentially, with the user's newest `yarn start` landing on 5054. Symptom: `yarn start` opens on an unexpected port (5051, 5052... 5054), the Welcome page loads, but clicking "Entrar" (login) does nothing — no navigation, no visible error. Root cause: Auth0's "Allowed Callback URLs" / "Allowed Web Origins" for the dev tenant are registered for `http://localhost:5050` only; `loginWithRedirect` fires but Auth0 silently rejects the mismatched origin (check browser DevTools console for a `Callback URL mismatch` style error to confirm). Diagnose with `lsof -nP -iTCP -sTCP:LISTEN | grep node` to see every port in the 5050+ range with a listener, then `ps -o pid,lstart,args -p <pids>` to see how old each one is and whether it's `--mode dev-local` or plain `vite` (`yarn start`). Fix: `kill <pids>` all of them, then re-run `yarn start` — it will bind cleanly to 5050. This is the same root cause as "Orphan Vite processes accumulate across `make clinical-up` runs" below, but surfaces even without ever having used the Makefile orchestrator — any repeated `yarn start`/`yarn start:local` across sessions accumulates orphans the same way. `vite.config.ts` hardcodes `port: 5050` (no `strictPort`), so Vite auto-increments silently on conflict instead of erroring — always check for orphans FIRST when a user reports "login button does nothing" or "opened on an unexpected port", before investigating Auth0 config itself.
 
@@ -216,6 +217,68 @@ When verifying a local dev environment works end-to-end (after `make clinical-up
 
 - **`docker compose run` doesn't work with `init.sh` entrypoint — use `--entrypoint bundle`**: When the core container is stopped (Puma crashed) and you need to run a one-off command like `db:migrate`, `docker compose exec` won't work (container not running). But `docker compose run app <cmd>` also silently fails: `init.sh` has `set -e` and its `*)` case does `exec sh -c "$@"` — when `docker compose run` passes `bundle exec rails db:migrate` as the command, `sh -c` receives the arguments broken up and the command exits without executing or producing any output beyond `bundle install`. **Fix**: bypass `init.sh` entirely with `--entrypoint bundle`: `docker compose run -T --rm --entrypoint bundle app exec rails db:migrate`. The `bundle` binary becomes the entrypoint, `exec rails db:migrate` becomes its arguments, and the command actually runs. Use `-T` to disable TTY allocation (avoids output capture issues with `tty: true` in docker-compose.yml). This pattern works for any one-off Rails command when the container won't boot.
 
+- **Run core specs from a `git worktree` by reusing the canonical project name (`-p core`)**: a
+  worktree's `docker-compose.yml` is identical to the canonical core, so run specs against the shared
+  dev DB/bundle/network WITHOUT spinning up a second stack. From inside the worktree:
+  `docker compose -p core run --rm -T --entrypoint bundle -e RAILS_ENV=test -e DISABLE_SPRING=1 app exec rspec <specs>`.
+  `-p core` reuses the already-running `core` project (so `db`/`redis` resolve to `core-db-1`/`core-redis-1`
+  and the `core_bundle_path` volume is shared), while `- .:/app` mounts the WORKTREE code. For an isolated
+  *server* (integration test / browser screenshot) instead of one-off specs:
+  `docker run -d --name <name> --network core_default -v <worktree>:/app -v core_bundle_path:/bundle
+  -p 3001:3000 -e DATABASE_HOST=db -e DATABASE_USERNAME=root -e DATABASE_PASSWORD='' -e REDIS_URL=redis://redis:6379/0
+  -e BUNDLE_PATH=/bundle/vendor -e FIRESTORE_EMULATOR_HOST=firebase:8080 core-app web`
+  (`init.sh web` = `rails s` on 3000). Then apply pending migrations with the `-p core run ... exec rails
+  db:migrate` pattern above, and `git checkout db/schema.rb` afterward (the dump reorders columns cosmetically).
+  Note the worktree lacks the gitignored `.env.development.local` — copy it from the canonical core before
+  booting a server (SERVER_ENV/FIREBASE_SERVICE_ACCOUNT live there).
+
+- **Rails boot in a Colima container can fail `Errno::EMFILE: Too many open files - Failed to
+  initialize inotify: the user limit ... has been reached`**: `fs.inotify.max_user_instances` (default 128)
+  is shared across ALL containers (they all run as root). With the canonical core + firebase + BFF (nodemon)
+  + panel (Vite) all watching files, a fresh `rails runner`/`db:migrate` boot exhausts it. Fix (persists until
+  VM restart): `colima ssh -- sudo sysctl -w fs.inotify.max_user_instances=512`.
+
+- **Stale `tmp/pids/server.pid` blocks a worktree core server reboot**: after `docker rm -f <container>` (or
+  any ungraceful kill), `tmp/pids/server.pid` is left in the MOUNTED worktree volume (it's a host file, not
+  container state). The next `core-app web` boot then fails with `A server is already running (pid: 1, file:
+  /app/tmp/pids/server.pid). Exiting` — the health check stays `000` (connection refused) even though Puma
+  never actually starts. Fix: `rm -f tmp/pids/server.pid` inside the worktree, then `docker restart <container>`.
+  (`init.sh web` runs `rails s` directly and does NOT clean the pidfile — only `bin/dev` does the `rm -f`.)
+
+- **Feature flags come from real Split.io in development — `config/split.yaml` is test-only**: `config/initializers/split_client.rb`
+  builds the client from `ENV["SPLIT_IO_KEY"]` (real remote Split.io) for every env EXCEPT test, which uses
+  Split.io "localhost" mode + `config/split.yaml`. So a flag you add to `split.yaml` with `treatment: 'on'`
+  has NO effect in local development — the split must exist in the Split.io dashboard (where it returns
+  `control`/off until created). To toggle a flag for a local integration test WITHOUT the dashboard, make a
+  temporary, uncommitted override in the worktree: (1) `split_client.rb` → `if !Rails.env.test? && !ENV["AMIL_LOCAL_FLAG"]`
+  (the env var is the clean kill-switch, vs forcing localhost unconditionally); (2) `split.yaml` → `treatment: 'on'`;
+  (3) boot the server with `-e AMIL_LOCAL_FLAG=1`. Revert both files (`git checkout config/split_client.rb
+  config/split.yaml`) before committing the PR — the committed state keeps `treatment: 'off'` and the original
+  initializer. These overrides do NOT affect specs: test mode already goes to the localhost branch, and the
+ feature specs stub `FeatureFlag.on?`.
+
+ - **Testing a "first-record >= cutoff date" grandfathering rule breaks when the cutoff is a FUTURE
+ placeholder**: the pattern `first_record_at.nil? || first_record_at >= CUTOFF` treats "no record yet"
+ as "new cohort" (nil → true), so a fresh entity shows the NEW behavior. But the moment you save the
+ first record "today" (before the future cutoff), `first_record_at = today < CUTOFF` flips the entity
+ OUT of the new cohort and it silently reverts to default/legacy behavior. Concrete case: Amil
+ `NEW_AMIL_WORKLOAD_RULE_CUTOFF = Date.new(2026,10,6)` while testing on 2026-10-02 — a case with zero
+ workloads returns the Amil limits, but after saving the first 5h workload it re-classifies as legacy
+ and the NEXT discipline's dropdown shows default limits (Fono 0–3 instead of the correct 0–4). This is
+ a placeholder-date artifact, not a logic bug (in prod the flag is OFF until the real go-live). Fix for
+ live testing: temporarily move the cutoff to a past date (uncommitted, marked `# TEMP`, like the flag
+ override) — pick a date between the spec's "before-cutoff" fixture and today so the boundary spec still
+ passes — then `git checkout` it before committing.
+
+- **Auth0 callback is NOT hard-locked to 5050 — non-5050 ports can work (test first)**: the "login button does
+  nothing on a non-5050 port" pitfall assumes the dev tenant's Allowed Callback URLs / Web Origins are 5050-only.
+  But in a recent session the panel was deliberately run on `localhost:5051` (`yarn start:local --port 5051`) and
+  the Auth0 login + redirect succeeded, producing screenshots. So before killing the canonical 5050 panel to
+  claim the port, TEST the login on the desired port first — the Auth0 config may already allow additional
+  localhost ports (or have been widened to `localhost:*`). The safe pattern is: bring the panel up on the new
+  port, run the Playwright login flow, and only escalate to "must be 5050" if Auth0 actually rejects the origin
+  (DevTools console shows `Callback URL mismatch`).
+
 - **Solid Queue crash loop on empty DB**: When the dev DB is empty (no `schema_migrations` table, no `solid_queue_*` tables), Puma boots, the `puma/plugin/solid_queue.rb` fork tries to start the Solid Queue supervisor, it queries `solid_queue_recurring_tasks` → `PG::UndefinedTable` → child process exits with code 1 → Puma logs `reaped unknown child process pid=NNN status=pid NNN exit 1` → `Detected Solid Queue has gone away, stopping Puma...` → container shuts down. The error chain in logs is: `PG::UndefinedTable: relation "solid_queue_recurring_tasks" does not exist` → `Detected Solid Queue has gone away, stopping Puma...` → `Exiting`. Fix: run `db:migrate` via the `--entrypoint bundle` pattern above, then `docker start core-app-1` (or `docker compose up -d app`). After 8-10 seconds, `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000` should return 302 (login redirect) or 200 — not 000 (connection refused).
 
 - **`make migrate-dev` is destructive — it does `db:drop db:setup`**: The core's Makefile `migrate-dev` target runs `db:drop db:setup` first, then `db:migrate`. This DESTROYS all data in the local DB (users, clinical cases, etc.) and recreates from seeds only. Never run `make migrate-dev` when you have imported real remote data that you want to keep. To run ONLY pending migrations without destroying data, use `docker-compose exec -e DISABLE_SPRING=1 app bundle exec rails db:migrate` directly.
@@ -244,9 +307,38 @@ When verifying a local dev environment works end-to-end (after `make clinical-up
 
 - **`yarn types` (tsc --noEmit) and full-suite `yarn vitest run` on clinical-panel routinely exceed 60s**: A foreground `terminal()` call gets killed at the session's configured ceiling even if you request a higher `timeout` (observed clamp: 60s regardless of a requested 180–600s). Run `yarn types` and `CI=true yarn vitest run --bail=1` as `terminal(background=true, notify_on_complete=true)`, then poll with `process(action='wait', timeout=60)` repeatedly (or `process(action='poll')`) until `status: exited` — a `status: timeout` result mid-run is expected, just call `wait` again rather than re-issuing the command or asking for a bigger timeout.
 
-- **Same background-loop pattern applies to `gh pr checks` polling**: `gh pr checks --watch` and long `sleep N && gh pr checks` one-shots don't fit well either — they block for the whole CI run and hit the same `process wait` clamp. Launch a self-terminating shell loop as a background process instead (`for i in $(seq 1 N); do sleep 30; gh pr checks <PR>; grep -q pending || break; done`), then repeatedly call `process(action='wait', timeout=60)` until it reports `exited`. The accumulated output across calls already has everything — don't fight the clamp.
+- **`yarn vitest run` crashes at startup with `TypeError: Cannot read properties of undefined (reading 'length')` in `coverage.AVPTjMgw.js` → set `VITEST_JUNIT_OUTPUT_FILE`**: clinical-panel's `vite.config.ts` sets `reporters: junitOutputFile ? ['default', ['junit', ...]] : undefined`. When `VITEST_JUNIT_OUTPUT_FILE` is unset, `reporters` resolves to `undefined` and vitest's coverage chunk calls `.length` on it at config-resolution time, aborting before ANY test runs (with Node 16, 20 or 22 — it is NOT a Node-version problem). **Fix**: run tests with `VITEST_JUNIT_OUTPUT_FILE=/tmp/junit.xml yarn vitest run <spec>` (any value works; `/tmp/junit.xml` is harmless). CI always sets it, which is why the same command works in Actions but not locally. The `Sourcemap ... points to missing source files` warnings from `@genialcare/atipico-react` are unrelated noise — ignore them; the run exits 0 when tests pass.
+
+- **Same background-loop pattern applies to `gh pr checks` polling**: `gh pr checks --watch` and long `sleep N && gh pr checks` one-shots don't fit well either — they block for the whole CI run and hit the same `process wait` clamp. Launch a self-terminating shell loop as a background process instead (`for i in $(seq 1 N); do sleep 30; gh pr checks <PR>; grep -q pending || break; done`), then repeatedly call `process(action='wait', timeout=60)` until it reports `exited`. The accumulated output across calls already has everything — don't fight the clamp. When babysitting a PR to merge (see `references/pr-blocked-unblocking.md`), this is the polling primitive.
 
 - **Flaky test in a full-suite run — verify in isolation before reporting a regression**: If `CI=true yarn vitest run --bail=1` fails on a spec unrelated to the files you changed (e.g. a `Test timed out in 5000ms` in a component you never touched), don't assume your change broke it. Re-run just that spec file alone (`yarn vitest run path/to/spec.tsx`) — a test that passes cleanly in isolation but times out under full-suite parallelism/load is contention-flaky, not broken by your diff. Only escalate to the user/orchestrator if the isolated run also fails. (Seen with `DirectNoteForm.spec.tsx` in clinical-panel: failed under `--bail=1` full run with a 5s timeout, passed 7/7 when run isolated.)
+
+- **BFF→core "socket hang up" (NOT 401/refused) → restart the core app**: If the BFF logs show
+  `request to http://core-app-1:3000/me.json failed, reason: socket hang up` (or a direct
+  `http.get` to `core-app-1:3000` from the BFF container hangs/timeouts) while `curl localhost:3000`
+  from the host works fine, the core's Puma is **stuck** — single worker (`workers 1` in puma.rb)
+  with stale `CLOSE_WAIT` sockets that never got cleaned up (visible in `/proc/net/tcp` state `08`).
+  `docker compose restart app` (core) clears it; the BFF then reaches core (401 for unauthenticated
+  `/me.json`, which is correct). This is distinct from the 401/empty-DB cases above — those return
+  401, this hangs/resets the socket. Note: a crash here may also drop a large `core` dump file in the
+  repo root (`file core` → "puma: cluster worker"); delete it, don't commit it.
+
+- **Auth0 dev login for panel testing = `dev@genialcare.com.br` with password = the email itself
+  (`dev@genialcare.com.br`), NOT "senha"**: the shorthand "email=senha" means email == password.
+  For automated browser screenshots of the panel, use a local Playwright chromium (e.g.
+  `~/clinical-panel-playwright/capture.mjs`) that clicks the panel's own "Entrar" →
+  `loginWithRedirect` (which sets up Auth0 PKCE correctly). The cloud `browser_*` tools do NOT fire
+  the `loginWithRedirect` redirect, and hand-building an `authorize?` URL skips PKCE so the redirect
+  back can't exchange the code (you land back on the Welcome screen, unauthenticated). Fono
+  assessment URL shape: `/panel/clinical-cases/:caseId/assessments/direct-assessments/:registryId/speech-therapy/:type`
+  (`speech-motor-control`, `expressive-communication`, `phonological`, `orofacial-myology`,
+  `augmentative-and-alternative-communication`).
+
+- **Colima (Docker daemon) must actually be running — "Cannot connect to the Docker daemon"**: Local core/bff run under Colima (not Docker Desktop), socket `unix:///Users/regishattori/.colima/default/docker.sock`. If `docker ps` / `docker compose` fail with `Cannot connect to the Docker daemon`, Colima is down even when `colima status` still says "running" (VM up but the daemon socket is stale). Fix: `colima restart` (or `colima start`), then re-run `make up` — `docker compose up -d` re-creates the containers that were stopped. When Colima is down, the user sometimes reaches core/bff via an SSH tunnel instead (see next-but-one pitfall); that is a symptom of local Docker being unavailable, not the intended setup.
+
+- **Running the BFF on the macOS host (NOT in Docker) requires `CORE_API_URL=http://localhost:3000`**: The BFF normally runs in Docker and reaches core over the `genial` network via `http://core:3000` (or `http://core-app-1:3000`). But if you start it directly on the host (`cd clinical-panel-bff && yarn start:dev`), those hostnames don't resolve and every core call fails with `getaddrinfo ENOTFOUND core-app-1` (or `core`). Override the env var before dotenv loads `.env`/`.env.local` (which default to `https://core.development.internal.genialcare.com.br` / `http://core:3000`): `CORE_API_URL=http://localhost:3000 yarn start:dev`. Rule of thumb — BFF in Docker → `http://core:3000`; BFF on host → `http://localhost:3000`.
+
+- **An SSH tunnel can shadow ports 3000/4050 (you're hitting a stale REMOTE, not local)**: If you change BFF/core code but the result doesn't appear (e.g. GraphQL introspection still shows the old `AssessmentRelatedObjective { id description status }` instead of your new fields), check who actually owns the ports: `lsof -nP -iTCP:3000 -iTCP:4050 -sTCP:LISTEN`. If `ssh <pid>` owns them, an SSH `-L` port-forward is routing localhost to a remote env and bypassing local Docker entirely. Kill it (`kill <pid>`) to free the ports, then start the local services. Note `docker compose ps` can still show `core-app-1` "Up" with the port mapping even while the tunnel owns the live LISTEN socket — `lsof` is authoritative, not the compose status.
 
 ## Related skills
 
