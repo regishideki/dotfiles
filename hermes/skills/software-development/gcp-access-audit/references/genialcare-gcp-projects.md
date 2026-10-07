@@ -30,11 +30,20 @@ Re-verify before relying on it long-term — infra changes.
 - Project `clinical-panel-dev`, database `central-de-acolhimento` (native mode,
   PITR disabled, `nam5`).
 
-## kubectl contexts
-- `development` context → cluster `kubernetes-development`, default namespace
-  `clinical-panel-bff`; the `core` namespace's `web`/`solid-queue`/`eventconsumer`
-  deployments live there too (use `-n core` explicitly).
-- `staging` and `production` contexts point at their respective clusters.
+## GKE clusters / kubectl contexts (exact names)
+- Context aliases `production` / `staging` / `development` map to full names:
+  - `gke_kubernetes-production-cd91_us-east1_kubernetes-production` → project `kubernetes-production-cd91` (projectNumber 1066000100260)
+  - `gke_kubernetes-staging-9ce9_us-east1_kubernetes-staging` → `kubernetes-staging-9ce9`
+  - `gke_kubernetes-development-9b05_us-east1-c_kubernetes-development` → `kubernetes-development-9b05`
+- The `core` namespace (web/solid-queue/eventconsumer) lives on these clusters; use `-n core` explicitly.
+
+## BigQuery (production datasets)
+- `data-kernel-production-4o7n.datakernel` — clinical cases, sessions, clinicians.
+- `supervision-production-8f1v` — assessment, PEI, protocols, intervention; used as the billing project for cross-project queries.
+
+## GCS
+- Bucket `genial-apps-tools-production` lives in project `kubernetes-production-cd91` (projectNumber 1066000100260) — NOT a project literally named `genial-apps-tools-production`. To find any bucket's owning project:
+  `curl -s -H "Authorization: Bearer $(gcloud auth print-access-token)" "https://storage.googleapis.com/storage/v1/b/<bucket>?fields=projectNumber"`
 
 ## Known gap at time of writing
 - A dev with only `roles/storage.admin` on `core-development-hy78` has NO

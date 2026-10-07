@@ -11,6 +11,25 @@ Trigger: before proposing anything that requires reaching a GCP resource directl
 assume personal IAM absence means "no path exists" — check the indirect path via
 already-running workloads before concluding access is blocked.
 
+## Auth mechanism first (before anything else)
+
+If a `gcloud`/`kubectl`/`gsutil` command fails with `Reauthentication failed`
+(or `invalid_rapt`), that is Google's Workspace session policy forcing a
+password re-auth — NOT the ~1h access token just expiring. Don't tell the user
+to "just log in again" as the fix; the durable fix is a **service-account key**.
+
+Three flavours, three behaviours: `gcloud auth login` (reauth, expires fast),
+ADC (silent refresh — but **kubectl does NOT use ADC**; it uses
+`gke-gcloud-auth-plugin` → `gcloud config config-helper`), and SA key (durable,
+works for everything once `gcloud auth activate-service-account --key-file=`).
+
+A `Forbidden ... requires ["container.pods.list"]` error means auth SUCCEEDED
+but IAM/RBAC is missing — a permission problem, not an auth one.
+
+Full taxonomy, diagnostic signatures, and the durable read-only SA setup live in
+`references/gcloud-auth-mechanisms.md`. Read it before diagnosing any
+gcloud/kubectl auth failure.
+
 ## Steps
 
 1. **Identify active account/project**: `gcloud config list`. Confirm which project
