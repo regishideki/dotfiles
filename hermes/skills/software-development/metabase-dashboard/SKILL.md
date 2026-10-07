@@ -1,11 +1,19 @@
 ---
 name: metabase-dashboard
-description: "Build Metabase dashboards via REST API."
+description: "Build Metabase dashboards via REST API. Build pitfalls: references/dashboard-build-pitfalls.md"
 ---
 
 # Metabase Dashboard Creation via REST API
 
 Create dashboards programmatically using the Metabase REST API (`x-api-key` header). The user maintains multiple clinical dashboards (PEI Aderente Psico/TO) and expects a specific architecture.
+
+Read-only cross-checking ("ver no Metabase") é pela MCP do Metabase (`mcp__metabase__*`), que tem topologia de databases própria (db 4 vs db 18 com UUIDs diferentes), é mono-tabela (sem JOINs) e não executa card nativa — ver `references/metabase-mcp-access.md`.
+
+## Replicating logic changes across tenant copies
+
+The PEI Aderente dashboards exist as per-tenant copies (Genial 296 / MindPlace 300) that were assumed to differ only in DB connection. ⚠️ Verify this: the RAW cards may be byte-identical AND multi-tenant (no `tenant_id` filter) — see `references/tenant-leak-in-native-cards.md` — in which case the tenant scoping is missing entirely and every copy leaks all tenants. When you change business logic in the RAW model, replicate the IDENTICAL change to every tenant's copy. The `is_pair_adherent` CASE is the single point: it drives both the case-level `aderencia_status` and the per-objective flag, so edit once per tenant (extra `WHEN` clauses inserted before the mapper fallback).
+
+Workflow: (1) change Genial first and verify end-to-end, (2) GET the other tenant's model and confirm the "before" CASE block is byte-identical, (3) apply the same string replacement and PUT `{"dataset_query": dq}` back, (4) invalidate that tenant's derived cards, (5) verify via `/api/dataset` with a `{{#card_id}}` card tag + that tenant's `database` id. Card/table/db-id map + full verification query: `references/tenant-logic-replication.md`.
 
 ## Architecture: Single RAW Source (MANDATORY)
 
