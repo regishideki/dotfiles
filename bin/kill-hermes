@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# kill-hermes — kill hung Hermes CLI processes and list sessions to resume.
+#
+#   kill-hermes              list Hermes CLI processes + recent sessions (no kill)
+#   kill-hermes -a           kill -9 ALL Hermes CLI processes, then list sessions
+#   kill-hermes -k PID ...   kill -9 only the given PIDs, then list sessions
+#
+# Safe to kill: Hermes persists every session to state.db, so nothing is lost.
+# The only process state a kill -9 cannot touch is STAT "D" (kernel I/O wait);
+# see it with `ps -o pid,stat`.
+
+set -u
+
+HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+DB="$HERMES_HOME/state.db"
+LAUNCHER="$HERMES_HOME/hermes-agent/hermes"
+
+# Hermes CLI chat runs as:  python .../hermes-agent/hermes [--resume|--continue ...]
+# Exclude the desktop app (Hermes.app) and the gateway (python -m hermes_cli.main).
+list_procs() {
+  ps -axo pid,stat,etime,tty,command \
+    | grep -F "$LAUNCHER" \
+    | grep -v 'grep ' \
+    | grep -v 'hermes_cli\.main'
+}
+
+# Print pid, stat, elapsed, tty, and the launcher + args (drop the long
+# "python .../venv/bin/python" prefix to keep the line readable).
+show_procs() {
+  list_procs | awk '{
+    cmd = $5; for (i = 6; i <= NF; i++) cmd = cmd " " $i;
+    sub(/^.*venv\/bin\/python */, "", cmd);
+    printf "  %-7s %-4s %-8s %-10s %s\n", $1, $2, $3, $4, cmd;
+  }'
+}
+
+list_sessions() {
+  if [ ! -f "$DB" ] || ! command -v sqlite3 >/dev/null 2>&1; then
+    return
+  fi
+  echo
+  echo "Sessões recentes (para retomar):"
+  sqlite3 -separator $'\t' "$DB" \
+    "SELECT id,
+            datetime(started_at,'unixepoch','localtime'),
+            substr(coalesce(title,'(sem título)'),1,56),
+            (ended_at IS NULL) AS active
+     FROM sessions
+     WHERE archived=0 AND id NOT LIKE 'cron_%'
+     ORDER BY active DESC, started_at DESC
+     LIMIT 12;" 2>/dev/null \
+    | awk -F'\t' '{ tag = ($4=="1") ? "  " : "* "; printf "  %-30s %s %s%s\n", $1, $2, tag, $3 }'
+  echo
+  echo "Retomar:  hermes --resume <id>    (ou  hermes --continue  para a última)"
+}
+
+kill_pids() {
+  local pids="$*"
+  if [ -z "$pids" ]; then
+    echo "Nenhum processo Hermes CLI encontrado."
+    return
+  fi
+  echo "Matando (SIGKILL): $pids"
+  # shellcheck disable=SC2086
+  kill -9 $pids 2>/dev/null
+  sleep 1
+  echo "Restantes:"
+  list_procs || true
+}
+
+case "${1:-}" in
+  -a|--all)
+    kill_pids "$(list_procs | awk '{print $1}')"
+    list_sessions
+    ;;
+  -k|--kill)
+    shift
+    if [ $# -eq 0 ]; then
+      echo "Uso: kill-hermes -k <PID> [PID...]"
+      echo "Dica: rode 'kill-hermes' (sem args) para listar os PIDs."
+      exit 1
+    fi
+    kill_pids "$@"
+    list_sessions
+    ;;
+  -h|--help)
+    sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+    ;;
+  *)
+    echo "Processos Hermes CLI (PID STAT tempo tty):"
+    show_procs
+    list_sessions
+    echo
+    echo "Ações:  kill-hermes -a         matar TODOS"
+    echo "        kill-hermes -k <PID>   matar um específico"
+    ;;
+esac
