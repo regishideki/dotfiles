@@ -22,8 +22,8 @@ Use os dois comandos abaixo (substituindo OWNER/REPO e PR_NUMBER pelos valores c
 1. Comentários gerais de review:
    `gh api repos/OWNER/REPO/pulls/PR_NUMBER/reviews`
 
-2. Comentários inline (em linhas específicas de código):
-   `gh api repos/OWNER/REPO/pulls/comments`
+2. Comentários inline (em linhas específicas de código, **apenas deste PR** — note o `PR_NUMBER` no path, senão o GitHub retorna comentários de TODOS os PRs do repo):
+   `gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments`
 
 ## Análise
 
@@ -32,12 +32,13 @@ Reflita sobre quais fazem sentido e quais não fazem.
 Os que fazem sentido:
 - Faça a alteração necessária
 - Crie um teste para validar, se necessário
+- **Commit incremental por comentário resolvido** (não acumule tudo num único commit no final — cada comentário resolvido vira um commit próprio, com push)
 - Dê push
-- Comente nas threads que a alteração foi feita com link para o commit
+- Comente na thread que a alteração foi feita, **incluindo o link do commit** (ex: `https://github.com/OWNER/REPO/commit/<sha>`) pra pessoa ver exatamente o que mudou
 
-Para responder a um comentário inline, use:
+Para responder a um comentário inline, use (note o `PR_NUMBER` no path — sem ele o GitHub retorna 404):
 ```
-gh api repos/OWNER/REPO/pulls/comments/COMMENT_ID/replies -f body="..."
+gh api -X POST repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies -f body="..."
 ```
 
 Os comentários que não entender ou que não fizer muito sentido, avise quais são e o motivo da discórdia. Bole uma mensagem de resposta, mas não a envie ainda até a aprovação do usuário.

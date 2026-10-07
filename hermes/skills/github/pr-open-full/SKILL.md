@@ -36,7 +36,15 @@ Veja se já está na branch certa. Se não estiver, crie uma nova branch e faça
 
 Abra um Pull Request como Draft com:
 - **Assignee**: `regishideki`
-- **Reviewer**: `GenialCare/capacidade-clinica`
+- **Reviewer**: `GenialCare/genialcare-engineering-agent` (o **bot**, primeira camada de validação — NÃO `capacidade-clinica`, que entra só depois da validação do usuário)
+
+O pedido de review do time `genialcare-engineering-agent` dispara o workflow `agentic-pr-review.yaml`
+("PR Review") no core, que publica a review do bot.
+
+**Gotcha crítico:** o PR precisa estar **READY (não-draft)** ANTES de pedir o review do bot.
+Pedir review num PR draft dispara `review_requested` com `requested_team` vazio → o job cai em
+`skipped`. Sequência: `gh pr create --draft ...` → `gh pr ready <N>` →
+`gh pr edit <N> --add-reviewer GenialCare/genialcare-engineering-agent`.
 
 O PR precisa ter um título e uma descrição com um resumo do que foi feito em pt-BR.
 Descreva as necessidades de negócio, quando houver.
