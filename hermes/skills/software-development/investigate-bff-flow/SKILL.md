@@ -123,8 +123,21 @@ src/
 - **`transformInput`**: Converts camelCase input to snake_case for outgoing
   requests to the core. Applied in datasource methods.
 
+- **Rails multiparameter duration encoding**: duration-typed inputs (GraphQL
+  `hours: Int`) are sent to the core as Rails multiparameter attributes —
+  `'hours(4i)': <int>` (hours) + `'hours(5i)': 0` (minutes) — e.g. the
+  `clinical_case_workload` body in `createWorkload` and the `workload_input`
+  body in `reproveSuggestedWorkload` (`datasources/core/clinical-cases-api.js`
+  and `.../assessments/suggested-workload-api.js`). The core returns durations
+  as ISO 8601 strings (`"PT10H"`), which the frontend parses with
+  `dayjs.duration(hours).asHours()`. When adding any duration-typed input,
+  copy this encoding and confirm the exact body shape in the domain's
+  integration spec (`src/__tests__/integration/...`).
+
 - **DataLoader**: Some datasources (e.g. `EvolutionCheckConfigurationsApi`) use
   DataLoader for batched requests to avoid N+1 queries.
+
+- **Resolve a referenced `Objective` / `LibraryObjective` by id — prefer the DataLoader datasources (no `clinicalCaseId` needed)**: There are two Objective datasources with different signatures: `clinicalCasesApi.objectiveById(id, clinicalCaseId)` (hits `GET /clinical_cases/{clinicalCaseId}/objectives/{id}.json`, requires `clinicalCaseId`) vs `objectivesApi.findById(id)` (a DataLoader hitting `POST /objectives/query.json` with `{ids}`, no `clinicalCaseId`). When writing a BFF **field resolver** that resolves an Objective referenced by id (e.g. `AssessmentRelatedObjective.peiObjective`), use `objectivesApi.findById(parent.peiObjectiveId)` — it avoids plumbing `clinicalCaseId` through the whole GraphQL contract (the core response, the type, the resolver args). Likewise `libraryObjectivesApi.findById(id)` (DataLoader → `POST /library/objectives/query.json`) resolves a `LibraryObjective` by id. Both DataLoaders return raw snake_case core objects — apply `.then(transformResponse)`. This is the clean pattern for making a `{ libraryObjective, peiObjective }`-style composable shape instead of a flat `{ id, description, status }` mashup.
 
 - **Union types & `__resolveType`**: `Sessionable` is a union resolved by
   `sessionType` field. `EvolutionCheckConfiguration` is resolved by
@@ -158,6 +171,30 @@ território", "NÃO escreva código"), they expect:
 - **Schema is modular.** Types like `Session`, `ClinicalCase`, `Objective` are
   extended across multiple modules. Search all `type-defs.graphql` files for
   `extend type Session` to find all fields.
+- **Field name / GraphQL type does NOT determine scoping.** A field can hang
+  off one type but resolve to a user-scoped endpoint. Example: the field
+  `ClinicalCase.weeklyEvolutionChecks` *sounds* "scoped by case", but its BFF
+  resolver calls `usersApi.weeklyEvolutionChecks({ clinicalCaseIds: [id] })`,
+  which hits `GET /users/evolution_checks/weekly.json` — a core controller that
+  ALWAYS filters by `authenticated_user.clinician.id`
+  (`core/packs/clinical/app/controllers/users/evolution_checks_controller.rb`,
+  `.by_session_clinician(clinician_id)`). So that field was already scoped by
+  the logged-in clinician, not by case. Two "sibling" fields
+  (`clinicalCase.X` vs `user.X(args)`) can resolve to the SAME endpoint with
+  the SAME scope — swapping one for the other is a functional no-op (and, if it
+  adds a second round-trip, a performance regression). Before accepting a
+  PR/issue that claims "field X is not scoped by Y", trace resolver →
+  datasource → core controller and confirm the real scope; the resolver often
+  re-hangs a field on a different type than the endpoint it actually delegates
+  to, so the type name is misleading.\n- **Nullability is declared in the type-defs.** A field typed `String!`/`Type!`
+  (non-null) can never be `null`/`undefined` at the resolver — Apollo throws a
+  "non-null field" error before the resolver return is delivered. So a
+  null-guard (`?? ''`, `?? default`, `if (!x)`) on a non-null field is dead
+  code. Before adding — or accepting a reviewer's suggestion for — defensive
+  null-handling, check the `!` on the field in `type-defs.graphql`. Conversely,
+  a field typed without `!` (nullable) genuinely can be null and may need a
+  guard. This is the single most common false-positive in Gemini Code Assist
+  review comments on BFF resolvers.
 
 ## References
 

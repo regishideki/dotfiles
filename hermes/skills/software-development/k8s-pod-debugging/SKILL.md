@@ -608,6 +608,49 @@ recommendation, don't fold it into a hotfix PR the user didn't ask for. See the 
 scope-creep pitfall: confirm+fix the immediate breakage, then OFFER the Dockerfile fix as a question rather
 than just doing it.
 
+## Pattern 8: memory-leak OOMKill — gradual monotonic RSS growth to the limit (distinct from liveness-probe loops)
+
+**Symptoms:**
+- `kubectl describe pod` → `Last State: Terminated`, `Reason: OOMKilled`, `Exit Code: 137` — no `Unhealthy`/`Killing (liveness)` events, no "command timed out".
+- Restart count climbs on a SLOW, accelerating cadence (0 → 1 → 2 → 8/day over weeks), not at a fixed `periodSeconds * failureThreshold` interval.
+- `kubectl top pod` shows memory near the limit (e.g. 1.6–1.7GB against a 2000Mi limit) even when idle.
+- Only SOME containers of the same service OOM — e.g. `web` OOMs at 2000Mi while `celery` is stable at 2500Mi. A leak is per-process, not per-deploy.
+
+**Root cause is a LEAK, not a spike.** Distinguish the two with Datadog before touching config:
+
+```text
+# Monotonic, gradual growth over days = leak (look at the CODE for un-reclaimed resources).
+# Flat baseline + sharp spikes at traffic peaks = under-provisioned limit (raise it, or add HPA).
+max:containerd.mem.rss{env:production,service:<svc>} by {pod_name}   # 30-day window
+sum:kubernetes.containers.restarts{env:production,service:<svc>}      # correlate the climb to a deploy date
+```
+
+Correlate the restart climb with ReplicaSet history (`kubectl get rs -n <ns> -o wide`) to find the image tag where it began, then `git log <prev-tag>..<current-tag>` to find the change.
+
+**Two candidate causes — but VALIDATE which one is real before reporting it:**
+
+1. **`asyncio.run()` nested inside `asyncio.to_thread()`** (a real anti-pattern): a FastAPI router runs a use case via `asyncio.to_thread(...)`, and that use case itself calls `asyncio.run(...)` — each request spins up a brand-new event loop (own thread pool + resources) that is never reclaimed → per-request leak. Plus parallelizing LLM calls (`asyncio.gather` + `Semaphore(N)`) raises the per-request peak: N full model responses held in memory at once.
+   ```python
+   # anti-pattern (leaks an event loop per request):
+   result = await asyncio.to_thread(use_case.perform, ...)  # perform calls asyncio.run(...)
+   # fix: propagate async up to the (already-async) handler
+   result = await use_case.perform_async(...)
+   ```
+
+2. **Silent SDK major-version bump reintroducing a leak through a NEW path** (the case that actually bit this project): grep the dependency history for a prior fix of the SAME symptom, then check whether a later major bump bypassed it.
+
+**Pitfall — before blaming a code path for a leak, confirm that path is actually high-volume.** A commit that *looks* like the culprit (nested `asyncio.run`, a `Semaphore(N)` fan-out) may sit in an endpoint serving ~5% of requests. Check per-endpoint request counts first (Datadog `aggregate_spans` on `resource_name`, or aggregate access logs); if the endpoint is negligible, the leak is elsewhere — stop chasing it. (In this session the user had to say "esse endpoint é muuuuito pouco usado" before this was checked; validate FIRST.)
+
+**Pitfall — "no code change in that path" often means a dependency change, not code.** Run `git log -- pyproject.toml poetry.lock` and grep the whole history for `memory leak` / `OOM` / `cachear client` / `lru_cache`. A prior fix (e.g. `@lru_cache` on a heavyweight SDK client) may still be in place while a later **major-version bump** of that SDK leaks through a different internal path (per-thread / per-event-loop connection state) the old fix doesn't cover. A bump buried in an unrelated feature-merge — not a dedicated dependency PR — is the classic tell, because nobody reviews it as a dependency change. (Worked example: `google-genai 1.60.0 → 2.20.0` reintroduced a leak the repo had already fixed in PR #228 by caching `genai.Client`.)
+
+**Immediate mitigation** (ship first, track the real fix separately): raise `memory.limit` to the value a sibling container uses (e.g. 2000Mi → 2500Mi) to stop the bleeding, then fix the leak. This is the OOM analogue of the "raise `timeoutSeconds` first, fix the probe design later" pattern — don't block the outage fix on the code fix.
+
+**Pitfall — the liveness probe failure is a SYMPTOM, not the cause.** In an OOMKill loop the `describe pod` events will ALSO show `Liveness probe failed ... connection refused` right after each kill, because the container is down while it restarts. Don't chase the probe; `Reason: OOMKilled` + `Exit Code: 137` in `Last State` is the ground truth. Confirm with `kubectl top` (near limit = leak/OOM, far below = real probe problem).
+
+**Pitfall — local branch can be STALE vs production.** When you `git log` the deployed image tag and find your checked-out branch doesn't contain it, the repo ships `main` to prod and your local branch (e.g. `development`) lags behind. `git fetch origin main` first, then `git show <tag>` to see the exact diff that changed runtime behavior. Don't read the stale local working tree as production truth.
+
+**Pitfall — read-only RBAC can `describe`/`get` but NOT `exec`.** A service account that can `kubectl get pods` / `describe` / `get events` does not automatically have `pods/exec`; `kubectl exec` fails with `Forbidden ... requires [container.pods.exec]` even when describe works fine. So "I can see the pod but can't dump its heap / `kubectl top` is fine but exec is blocked" is expected, not a config bug. When exec is unavailable, drive the memory-leak diagnosis entirely through APM/metrics (Datadog `containerd.mem.rss` trend) + `kubectl top` + logs — you cannot run `tracemalloc`/heap dump in-pod, so don't block the root-cause narrative on it; present the leak evidence and the SDK-downgrade hypothesis from git history instead.
+
 ## Project-Specific: clinical-language-models
 
 Deployment configs use **ytt** (Carvel). See `references/ytt-deploy-structure.md` for paths, template structure, liveness probe editing, and redeployment.

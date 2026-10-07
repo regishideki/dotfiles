@@ -85,12 +85,13 @@ This mirrors the general local-dev instinct in `genialcare-local-dev`: prefer di
 
 ## Verification after any change here
 
-`yarn lint`/`yarn test` in this repo require the project's own Node (`.nvmrc`), not the system default — the plain `yarn run lint`/`yarn run test` may fail with `The engine "node" is incompatible`. Use:
+`yarn lint`/`yarn test`/`yarn jest` in this repo require the project's own Node, not the system default — the plain `yarn run lint`/`yarn run test`/`yarn jest` fails with `The engine "node" is incompatible. Expected version "~20.19.4". Got "<wrong version>"` (the mobile repo pins `engines.node` to `~20.19.4` in `package.json`). Use the **explicit** version, not bare `nvm use` (which can resolve to the system Node 22.x or the nvm default alias instead of `.nvmrc` — see `genialcare-local-dev` for the fixed-node-PATH shadowing case):
 ```bash
-source ~/.nvm/nvm.sh && nvm use && npx eslint <changed files>
-source ~/.nvm/nvm.sh && nvm use && yarn run test
+source ~/.nvm/nvm.sh && nvm use 20.19.4 && npx eslint <changed files>
+source ~/.nvm/nvm.sh && nvm use 20.19.4 && yarn run test
+source ~/.nvm/nvm.sh && nvm use 20.19.4 && yarn jest src/screens/Pei/PeiObjectiveList
 ```
-(`yarn run test` itself works fine once the right Node is active; it's `yarn run lint`'s engine check via the system-default `yarn` binary that trips over the wrong Node — running `npx eslint` directly after `nvm use` sidesteps it.)
+(Once the right Node is active, `yarn run test`/`yarn jest` work fine; it's the engine check against the wrong `node` that trips first. `npx eslint` directly after `nvm use 20.19.4` sidesteps the `yarn run lint` engine check too.)
 
 ## Pitfall: Customer.io push notifications not delivering, but in-app/track/identify all work
 
