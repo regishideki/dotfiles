@@ -153,6 +153,38 @@ projects/core/
     `references/clinical-case-workload-investigation.md` (section
     "Supervision CDC") for the full pattern with example files.
 
+11. **CDC event tables (`raw.<table>_events`) as row-level forensic history — use for "who did what when" investigations, not just Dataform pipelines.** Every core Postgres table replicated via Datastream has a matching external table `raw.<table_name>_events` containing every INSERT/UPDATE row-version, not just current state — but the CDC tables are SPLIT ACROSS TWO PROJECTS by domain: case/session/user tables (e.g. `sessions_events`, `clinical_cases_events`, `users_events`) live under `data-kernel-production-4o7n.raw`, while ASSESSMENT/clinical-domain tables (e.g. `occupational_therapy_registries_events`, `speech_therapy_registries_events`) live under `supervision-production-8f1v.raw`. If a `raw.<table>_events` lookup returns zero rows or the table is missing under the first project, list tables in the other project's `raw` dataset before concluding there is no CDC for that table:
+   ```sql
+   SELECT table_name FROM `supervision-production-8f1v`.raw.INFORMATION_SCHEMA.TABLES WHERE table_name LIKE '%registr%'
+   ```
+   **DELETE events only carry the primary key** — on a `source_metadata.change_type='DELETE'` row, `payload` fields other than `id` are empty (Datastream's delete event does not replicate the full row), so `updated_by_id`/`deleted_by` is NOT available from CDC. To attribute a delete to a person, use the Datadog trace's `browser.request` span `usr.email`/`usr.id` (see the `genialcare-datadog-investigation` skill), not the CDC table. Schema: `payload` (STRUCT mirroring the table's columns, including `created_by_id`/`updated_by_id`/timestamps), `source_metadata.change_type` (INSERT/UPDATE/DELETE), `source_timestamp`. This is the fastest way to answer "who created this record and with what values", "what changed and when", or "who triggered this specific field flip":
+    ```sql
+    SELECT source_timestamp, source_metadata.change_type, payload.<field1>, payload.<field2>
+    FROM `data-kernel-production-4o7n.raw.<table>_events`
+    WHERE payload.id = '<record-id>'
+    ORDER BY source_timestamp ASC
+    ```
+    Keep the SELECT column list narrow — these are external tables and a broad struct-field select can push even a single-record lookup past the 60s foreground `terminal` timeout (a wide select on one row hung 60s+; the same query trimmed to ~8 needed columns returned in seconds). Resolve `created_by_id`/`updated_by_id` UUIDs to human emails via `datakernel.users` in a follow-up query. Cross-reference the resulting timestamp against `service:core` Datadog logs (`search_datadog_logs` with the record id as the query string) to see the exact use-case/event emission that produced that row-version — logs commonly show the `EmitEventJob`/`SessionUpdated` payload with the same `created_by`/`updated_by`, confirming which UseCase ran.
+
+12. **Quantifying the blast radius of a suspected data-integrity bug: JOIN + COUNTIF across BQ tables, right after root-causing a single record.** Once one broken record is understood (e.g. a foreign key that a use case should have populated but is NULL), immediately check how many other records share the same gap — a one-record report reads very differently from a systemic one:
+    ```sql
+    SELECT s.discipline, COUNT(*) AS total,
+           COUNTIF(a.<expected_fk> IS NULL) AS missing
+    FROM `data-kernel-production-4o7n.datakernel.sessions` s
+    LEFT JOIN `supervision-production-8f1v.assessment.assessment_sessions` a ON a.id = s.id
+    WHERE s.session_type = 'direct_assessment'
+    GROUP BY s.discipline
+    ```
+    This turned a "one therapist hit a bug" investigation into "53-61% of ALL direct_assessment sessions across two disciplines are missing their registry" — a materially different severity/priority conversation. Always run this cross-check before closing out a root-cause investigation that started from a single user report.\n\n    **Caveat — segment the missing rate by time before quoting an "all-time" number.** An all-time missing rate is routinely dominated by *legacy rows that predate the feature/column itself*, not the live bug. In the `direct_assessment` example above, the 53-61% "all-time" figure was almost entirely pre-feature: the registry-creation logic was only added in Mar-Apr 2026, so sessions from Jan-Feb 2026 are *legitimately* 100% missing. Grouping the same JOIN by `FORMAT_TIMESTAMP("%Y-%m", s.created_at)` showed 100% missing in Jan-Feb, dropping to a steady-state **~1-4%/month** once the feature was live — that steady-state number is the true active-bug severity, an order of magnitude smaller. Whenever the "how many records are broken" number looks alarming, break it down by month (or by a feature-rollout date) and separate "the feature didn't exist yet" from "the feature is broken now" before reporting severity.
+
+13. **Feature flags (Split.io) in core — NOT the same as clinical-panel's React flags.** Core uses Split.io (`splitclient-rb`), so the `remove-feature-flag` skill (which greps `constants/flags.ts` + `useFeatureFlag` in the TypeScript repo) does NOT apply here. Where flags live in the Rails core:
+    - `app/services/feature_flag.rb` — the catalog: one `UPPER_SNAKE` constant per flag pointing at its string `split_name`, plus the `FeatureFlag.on?(key:, split_name:, attributes:, model:)` helper. `on?` calls `client.get_treatment(key, split_name, attributes)`, logs `[FeatureFlag] split_name=... treatment=...`, and — when a `model:` is passed — `find_or_create_by`/`destroy_by` on `FeatureFlagableModel` to record/clear which record currently has the flag "on".
+    - `config/initializers/split_client.rb` — builds `Rails.configuration.split_client` from `ENV["SPLIT_IO_KEY"]` (prod/staging); in `test` it reads local `config/split.yaml` with a 10s reload.
+    - `config/split.yaml` — local split definitions consumed by tests.
+    - `app/models/feature_flagable_model.rb` — polymorphic `FeatureFlagableModel < ApplicationRecordTenant` (`key`, `flag_name`, `flagable` polymorphic) tracking flag-on state per record.
+    - The `key` (Split.io bucketing key) has NO convention — each call site picks one. Precedents: per-case (`clinical_case.id` — `enable_hardlock_bradesco_workload`), per-report (`vineland_report_id` — `enable_create_suggested_workload`), per-tenant (`clinical_case.tenant_id` — COPM flags; `tenant.external_id` — new authorization). An undefined split returns treatment `"control"` (≠ "on" → flag off), and `model:` has no production call site (marketplace specs only).
+    - Splits are created in the **Split.io dashboard** — there is NO rake/task in core that creates them. For tests, add the split to `config/split.yaml`. Specs stub globally: `allow(FeatureFlag).to receive(:on?).and_return(true/false)` (the pattern in every workload spec).
+
 ## Investigation procedure
 
 1. **Start with search_files for the domain term.** Search content across
@@ -200,7 +232,11 @@ projects/core/
     to query or look up data (e.g. "busque o último evolution check do caso X"),
     load the `create-rails-snippet` skill and build a reusable snippet instead of
     running queries directly via `rails runner`. The snippet is the deliverable;
-    local execution is secondary.
+    local execution is secondary. **Destination matters:** reusable/committed
+    snippets go in the `code-snippets` repo (`rails-console/<domain>/`, shared and
+    versioned — see that repo's `rails-console/CLAUDE.md`); `core/custom_gitignore/snippets/`
+    is gitignored/local-only/throwaway. The user explicitly prefers durable snippets
+    live in `code-snippets`, not the gitignored core dir.
 
 11. **For pre-implementation territory mapping, return a structured report.**
     When the user asks to "investigar" or "mapear o território" for a feature
@@ -278,6 +314,8 @@ projects/core/
   green run. If you still see `uninitialized constant VCR` after confirming
   the gem is installed (`bundle list | grep vcr`), also try `bundle exec
   spring stop` before retrying.
+
+- **The core container's `init.sh` ENTRYPOINT mangles multi-word commands — override it with `--entrypoint bundle` to run anything other than the built-in verbs.** `Dockerfile` sets `ENTRYPOINT ["sh", "init.sh"]`; its fallthrough `*)` case is `exec sh -c "$@"`, and `sh -c "$@"` treats only the FIRST word as the command string. So `docker compose run --rm app bundle exec rspec <path>` silently runs just `bundle` (→ `bundle install`) and never reaches rspec — symptom: output ends at "Bundle complete! ... N gems now installed" with no test output. Fix: `docker compose run --rm --entrypoint bundle -e DISABLE_SPRING=1 -e RAILS_ENV=test app exec rspec <path>`. For a fresh checkout the test DB also needs `--entrypoint bundle ... app exec rails db:create db:schema:load` first (`db:schema:load` does NOT seed; a factory that depends on a seeded enum like `:speech_therapy`/discipline may still fail with "Discipline must be one of: ").
 
 - **Namespaced models.** Models are deeply namespaced
   (`Intervention::Evolution::EvolutionCheck`). The file path mirrors the
@@ -387,7 +425,35 @@ projects/core/
   `app/models/` — everything else is under `packs/<pack>/app/models/` with
   deep namespacing. To find a model by class name, use `find packs -name
   "*.rb" | xargs grep -l "ClassName"`. A directory listing of `app/models/`
-  will miss 90%+ of the models.
+  will miss 90%+ of the models. (`Documents::ClinicalCaseFile` is one of the
+  top-level exceptions: it lives in `app/models/documents/clinical_case_file.rb`,
+  NOT in a pack, with `self.table_name = "documents_clinical_case_files"`.)
+
+- **CDC table names in BQ do NOT always match the Postgres table name — always
+  confirm the `raw.*_events` name before assuming it.** `documents_clinical_case_files`
+  (Postgres) is replicated to BQ as **`raw.clinical_case_documents_events`** (plus a
+  `clinical_case_documents_events_v1` variant and a `datakernel.clinical_case_documents`
+  view) — there is NO `documents_clinical_case_files_events` table. The user's heuristic
+  when a CDC lookup comes up empty: the BQ table is often renamed to a *broader/older*
+  concept (here "file" → "document"), so search Metabase/BQ for the model's domain term
+  (e.g. "clinical_case_documents") rather than the literal Postgres table name. To list
+  candidates: Metabase `search(term_queries=["clinical_case_documents"])` or
+  `bq query "SELECT table_name FROM <proj>.raw.INFORMATION_SCHEMA.TABLES WHERE table_name LIKE '%document%'"`.
+  The `raw.*_events` payload fields mirror the Postgres columns (`payload.id`,
+  `payload.document_type`, `payload.name`, `payload.clinical_case_id`, `payload.created_by_id`,
+  `payload.updated_by_id`, `payload.created_at`), plus `source_metadata.change_type`
+  (INSERT/UPDATE/DELETE), `source_metadata.is_deleted`, and `source_timestamp`.
+
+- **When the `bq` CLI auth has expired (\"Reauthentication failed\"), the Metabase MCP
+  (`mcp__metabase__*`) is a read-only fallback for querying the `raw` CDC tables — the
+  external tables are exposed there with `payload.*` / `source_metadata.*` field_ids.** Path:
+  `search(term_queries=[...])` → `get_table(id=..., with-fields=true)` to map field_ids
+  (`t<id>-N`) → `query(table_id=..., filters=[{field_id,operation:"equals",value}],
+  order_by=[{field_id, direction}])`. Filter on `payload.id` + read `source_metadata.change_type`
+  ordered by `source_timestamp` to reconstruct INSERT/UPDATE/DELETE history for one record.
+  The Metabase result echoes the generated SQL in `native_form.query` — useful to copy the
+  exact BQ SQL for a later `bq` run. DELETE rows only carry `payload.id` (other payload
+  fields NULL, `is_deleted=true`) — same Datastream limitation as the raw SQL path.
 
 - **search_files can fail on patterns with dots/special chars.** When
   searching for topic strings like `clinical_case.workload` (containing
@@ -549,6 +615,70 @@ projects/core/
   empty until the natural trigger events recompute it — don't assume either
   without asking, since it changes what day-one looks like for the feature.
 
+- **`Wrap(TrailblazerTransactionWrap)` reverts EVERY statement inside it via `raise
+  ActiveRecord::Rollback` the instant one internal step returns falsy — and this produces
+  ZERO error signal: no exception, no error log, no error-tagged APM span.** The wrapper
+  (`app/infra/trailblazer_transaction_wrap.rb`) does
+  `ActiveRecord::Base.transaction { signal, ... = yield; raise ActiveRecord::Rollback unless
+  success }`. A Datadog APM trace captures every `postgres.query`/`pg.exec.params` span as it's
+  *emitted* to Postgres — including ones inside a transaction that gets rolled back seconds
+  later. **A trace showing `INSERT INTO some_table ...` succeeding is NOT proof the row
+  exists** — always cross-check against the actual current DB/BigQuery state before concluding
+  a write persisted. Symptom: a business action appears to "half-work" (e.g. a session's
+  `session_type` field changes permanently because that UPDATE ran in an EARLIER, separate
+  transaction, but a downstream registry/child record that should have been created in the
+  SAME later transaction never exists) with no error anywhere in logs or error tracking —
+  because the whole transaction (registry creation, child inserts, deletes, everything) was
+  inside one `Wrap(TrailblazerTransactionWrap)` block that later rolled back as a unit when
+  one internal step silently returned `false` (e.g. a `.valid?` check, a `.destroyed?` check).
+  To find the real culprit step, reproduce locally with `rails runner`/console and check each
+  step's return value directly — trace inspection alone will mislead you into thinking the
+  writes succeeded. Worked example: `UpdateInterventionSessionToAssessment`'s wrap showed a
+  full successful-looking trace (registry INSERT, ~40 child assessment INSERTs, the linking
+  UPDATE, the intervention-session DELETE) for a session whose
+  `assessment_occupational_therapy_registry_id` is `NULL` in BigQuery both on the day of the
+  incident and today — proving the transaction rolled back despite the trace showing every
+  query executing cleanly.
+
+- **A model's own `self.create` can hide a SECOND, inner transaction (`transaction(requires_new:
+  true)`, i.e. a Postgres SAVEPOINT) that swallows `RecordNotUnique`/`RecordInvalid` internally —
+  this can explain a `TrailblazerTransactionWrap` write that "half-persists" even when you've
+  already ruled out the outer-wrap-rollback explanation above.** Some models define their own
+  `self.create(...)` wrapping a `transaction(requires_new: true) { create!(...) ... }` with a
+  `rescue ActiveRecord::RecordNotUnique` / `rescue ActiveRecord::RecordInvalid` that returns `nil`
+  on failure (grep `requires_new: true` repo-wide to check). Because `requires_new: true` opens a
+  **new SAVEPOINT nested inside** whatever `Wrap(TrailblazerTransactionWrap)` transactions are
+  already open (checkout → complete → clinical use case → subprocess can be 4 levels deep), a
+  failure inside that model method rolls back ONLY its own savepoint — the outer transactions stay
+  open, valid, and go on to commit their own separate writes normally. This is a MORE precise
+  failure mode than "the whole Wrap rolled back": some fields persist (e.g. `session_type`,
+  `status: completed`) while a specific nested record (e.g. a `Registry`) never exists, with no
+  exception anywhere in logs/APM because the model's own `rescue` ate it.
+  - **When this savepoint-swallowed-exception pattern is live, check for a PARTIAL UNIQUE INDEX
+    (`WHERE status = '...'`) on the table** (`grep -n "unique: true" db/schema.rb` for that table).
+    If one exists, the `RecordNotUnique` path is not hypothetical — it's the schema-enforced
+    consequence of two concurrent requests racing to create the "one active row per parent" record
+    (e.g. two near-simultaneous checkout submissions, or a frontend retry-on-timeout). CDC evidence
+    of this race: two UPDATEs on the exact same row landing in the exact same source timestamp
+    (down to the second) in `raw.<table>_events` — a strong tell that two requests, not one, touched
+    the record.
+  - **CORRECTION — this bullet was REFUTED by a direct two-connection Postgres test (2026-09; run `scripts/verify_unique_index_blocking.py`). PostgreSQL's unique index uses *speculative insertion*: the loser's `INSERT` BLOCKS on the winner's uncommitted row, so `create!` does not raise `RecordNotUnique` until the winner COMMITS — by then the winner's row is committed and visible, so `find_by` RETURNS it and the loser REUSES it (never `nil`). Consequence: this race does NOT explain a "missing registry / FK NULL" bug — the loser always ends up with a registry (its own or the winner's). Do not treat it as confirmed root cause; re-open the investigation (candidates: a step returning `false` that IS logged but out of log-retention, an exception from a `!` method like `mark_as_started!` that bypasses the fail-track, or two sequential requests where an earlier request commits `session_type` and a later one fails).** Original (incorrect) text below: the `rescue RecordNotUnique` reload for the "losing" request can still return the wrong
+    result under Postgres `READ COMMITTED` (the default): a `find_by(status: 'started')` running
+    inside the loser's own still-open outer transaction/savepoint cannot see rows created by the
+    winner's transaction until the winner COMMITS.** If the winner's outer `Wrap` chain hasn't
+    committed yet (still several levels up the call stack), the loser's reload finds `nil`, the
+    step fails "for no visible reason," and its own transaction chain rolls back — while the
+    winner's commit later succeeds normally. This reproduces as a genuine race only with two
+    concurrent connections; a single-threaded Rails console reproduction will NOT surface it. To
+    prove it, either drive two real concurrent requests (threads/processes with separate DB
+    connections) or reason from the schema constraint + CDC double-update evidence when a live
+    concurrency repro isn't available (e.g. Docker/tooling blocked) — state the confidence level
+    state the confidence level explicitly rather than presenting a plausible read as a confirmed root cause.\n  - **When you find this race on a partial unique index, check SIBLING methods for an already-applied lock fix before proposing one.** The same class of race often exists in two methods of the same model/flow — one may already have the fix, which tells you (a) the fix pattern that was accepted here and (b) exactly which method still needs it. Worked example: `Assessments::OccupationalTherapy::Registry` had a race fixed in `recalculate_status!` (the *completion* path) via `with_lock` in June 2026 (commits `9eb155d9d7` / `c56a7e8497`, PR #6011), but the *creation* path `find_or_create_assessment_registry` (in `UpdateInterventionSessionToAssessment`) still has no lock and is the live bug. One `git log --oneline -- <registry>.rb` plus `grep -n 'with_lock\\|lock!' <registry>.rb` surfaces both the sibling fix and its absence; the recommended fix is usually the same `with_lock` / `SELECT ... FOR UPDATE` on the offending read.
+
+- **The \"savepoint-swallowed-exception → partial commit\" hypothesis is ALSO REFUTED — a `Wrap(TrailblazerTransactionWrap)` rolls back EVERYTHING when any inner step returns falsy, even a step whose model method swallowed its own exception.** Reproduced directly (2026-09) by stubbing `Assessments::SpeechTherapy::Registry.create` to return `nil` and calling `UpdateInterventionSessionToAssessment.call`: the result was `success=false` AND `session_type` reverted to `intervention`, the `assessment_session` row was NOT created, and the intervention session was NOT deleted — a **full** rollback, not a partial commit. The chain is: model `self.create` returns `nil` (its own `requires_new` savepoint rolled back) → the step does `return false unless registry` → that falsy return triggers the step's `fail` handler (`fail_fast: true`) → the outer `Wrap(TrailblazerTransactionWrap)` sees the fail terminus and `raise ActiveRecord::Rollback` → the WHOLE transaction (including the EARLIER `session.update(session_type: DIRECT_ASSESSMENT)` step) rolls back. **So \"session_type persists while the registry doesn't\" is IMPOSSIBLE when both live in the same Wrap.** If production data shows `session_type = direct_assessment` (persisted) but `assessment_*_registry_id = NULL`, the subprocess SUCCEEDED — the registry was created and linked, then **DELETED afterward**, and the link nullified by `has_many :assessment_sessions, dependent: :nullify` on the registry model. The delete path is `Assessments::UseCases::Delete<Speech|Occupational>TherapyAssessmentsRegistry` (called by `*_assessments_registries_controller.rb` DELETE endpoints, `registry.destroy`; they refuse when the registry is already `completed?`). RESOLVED (16/09/2026): the delete is a real, user-initiated action (frontend `DeleteRegistryButton` + confirmation modal), confirmed via APM span search `resource_name:*Delete*AssessmentsRegistry*` (28 spans/30d, all `ok`). It's a design gap: the delete nullifies the registry link but does NOT revert `session_type`, and the resulting `direct_assessment`-with-NULL-registry session is UNRECOVERABLE (`validate_session` only accepts `intervention`). Do NOT re-investigate rollback/race/partial-commit. See `references/direct-assessment-registry-null-investigation.md` for the full trail and reproduction recipes.
+
+- **When confirming a suspected race condition via sibling-record data, distinguish the CREATION timestamp from the BUSINESS-ACTION timestamp — comparing the wrong column produces a false concurrency signal.** In the sessions domain, `sessions.created_at` is when the session was *scheduled* (the operational panel batch-creates several sessions for one case in the same second), while the conversion to `direct_assessment` — where the registry is actually created and the race would occur — is a LATER, separate write. The correct proxy for conversion time is `assessment_sessions.created_at`: the `AssessmentSession` row is created by the conversion subprocess's `create_assessment_session` step, so its `created_at` marks the conversion. Querying "another session of the same case+discipline saved at nearly the same time" on `sessions.created_at` returns a pile of 0-second "twins" that are just batch scheduling (a red herring); the same query on `assessment_sessions.created_at` (conversion time) returned ZERO siblings within 120s — correctly ruling out a two-different-sessions race and pointing instead at a single-session double-conversion (frontend retry / double-click) or a deterministic failure. Before concluding "it's a race", confirm which timestamp column actually represents the business action being raced on, and re-check whether the "near-simultaneous" pattern survives when you switch to that column.
+
 - **Trailblazer `.call` takes a positional Hash, not keyword args.**
   Use cases extend `Trailblazer::Activity::Railway` whose `.call` expects
   a single positional hash (the ctx), not Ruby keyword arguments. Write
@@ -600,6 +730,13 @@ projects/core/
   4. Decorator-only methods are NOT on the model. `calculated_official_scheduled_hours_by_discipline` lives on `People::ChildDecorator`; the model equivalent is `scheduled_hours_by_discipline(status: :official)` (returns `{ "aba" => Float, "speech_therapy" => ..., "occupational_therapy" => ... }`).
   Worked example: a user reported `feasiblePlaytimeTogetherHours = 1` "with 0 scheduled hours" and suspected a BFF bug — querying the Core showed `aba = 2.0` (two active official schedules), so the surprising "1h" came from `2.0 * 0.15 = 0.3` flooring to 1 via the rounding rule, not a BFF error. **The input was not what the user assumed — verify it before re-reading the resolver.**
 
+- **Querying PRODUCTION core data read-only: `kubectl exec` + `bin/rails runner` + `safe_unscoped_with_tenant` (NOT the local-Docker path above).** For "does this data actually exist in prod?" — verifying a claim in an analysis/user-story doc against live data — the authoritative path is the real pod, not BigQuery: the prod BQ mirror (`supervision-production-8f1v.intervention.objectives`) can return **0 rows for the service account** (row-level access policy) while `bq show` still reports non-zero metadata, so only a live Postgres scan is ground truth. Steps:
+  1. Re-auth the gcloud service account (tokens expire ~daily): `gcloud auth activate-service-account --key-file=~/.config/gcloud/regis-automation-sa-key.json`, then `rm -f ~/.kube/gke_gcloud_auth_plugin_cache` (kubectl otherwise reads a stale auth cache and fails with "Reauthentication failed").
+  2. `kubectl get pods -n core` → pick a `web-*` pod.
+  3. `kubectl exec -n core <web-pod> -c web -- bash -c 'cd /app && bin/rails runner "<ruby>"'` — the app lives at `/app`; keep the Ruby single-line inside double quotes (the outer `bash -c '...'` makes the nesting survive). **For multi-line Ruby, prefer the stdin pipe instead** — write the script to a local file and pipe it: `kubectl exec -n core <web-pod> -c web -i -- bash -c 'cd /app && bin/rails runner -' < /tmp/script.rb`. This avoids the quoting hell of nesting multi-line Ruby inside `bash -c '...'` / double quotes (SQL string literals with single quotes, `"`-delimited Ruby, etc. all collide), and `rails runner -` reads the program from stdin.
+  4. For a GLOBAL count across tenants use `.safe_unscoped_with_tenant` — **never `unscoped`** (AGENTS.md rule). A bare `.count` under acts_as_tenant with no current tenant silently returns 0; `Model.safe_unscoped_with_tenant.where(...)` is the correct read-only global form.
+  Worked example: verified `Intervention::Pei::Objective` rows without `library_objective_id` (274 live, 204 → `ProtocolItem` + 70 → `Protocol`) via this path — see `references/speech-therapy-assessments-and-objectives.md` (§ "Verified in production").
+
 - **"Discarded item still showing in UI" bugs: compare sibling components
   before assuming a backend problem.** When the user reports that a
   soft-deleted/discarded record still appears somewhere in the UI, and they
@@ -649,8 +786,18 @@ projects/core/
   `git-lost-commit-forensics` skill), this is the fast way to answer "was the
   fix live when they tested?" without kubectl access.
 
+- **"What changed recently in file X?" / "Which PRs merged on date Y?" — a two-part git/gh archaeology recipe that answers both in minutes.** This is the fastest way to answer "did anything touch the UsersController?" or "what landed in core on Aug 26?" without cloning context:\n  1. **PRs merged on a date** — `gh pr list --repo GenialCare/core --state merged --limit 200 --search \"merged:YYYY-MM-DD\" --json number,title,author,mergedAt,baseRefName`. The `merged:` search filter works (it's not just a local filter), and `mergedAt` comes back in **UTC** — subtract 3h for BRT if the user wants wall-clock order. To find which of those PRs touched a given file/controller, loop the numbers: `for n in <nums...>; do gh pr view $n --repo GenialCare/core --json files --jq '.files[].path' | grep -iE '<pattern>'; done`, then `gh pr diff <n> | grep -A 60 '<path>'` for the actual hunk. Note: a request spec under `spec/requests/<thing>_spec.rb` can change without the controller itself changing — the controller may be `app/controllers/users_controller.rb` (top-level `app/`, NOT a pack) while its spec lives in root `spec/requests/`.\n  2. **File history with dates/authors** — `git log --pretty=format:'%h|%ad|%an|%s' --date=format:'%Y-%m-%d %H:%M' -15 -- <path>` gives a compact one-line-per-commit history (hash, date, author, subject) that instantly shows the last N changes and their spacing. Follow with `git show <sha> -- <path>` to read a specific commit's diff to that file only (add `config/routes.rb` as a second path when the change touched routing too). `git show <sha> --stat` first lists every file in the commit so you know whether the controller edit came bundled with a use case, route, and specs. This is the same git-archaeology family as the CLOSED-PR and stale-checkout pitfalls above, but scoped to \"what changed\" rather than \"is it deployed\".
+
+- **Health-plan/operator identification in the clinical pack is by NAME STRING, not `integration_alias` — and grandfathering cutoffs compare frozen Date constants against BUSINESS dates, never `created_at`.** `General::InsuranceHealthPlan` (clinical pack) carries only `name`, `cnpj`, `finance_insurance_health_plan_id`; the finance plan's `integration_alias` is NOT synced across, because `packs/clinical` cannot reference `Finance::InsuranceHealthPlan` (pack direction is operational → clinical). Identification predicates are hardcoded name matches (`bradesco_group?` → `name.in?([...])`, `porto_seguro?` → `name == \"Porto Seguro Seguro Saúde\"`), consumed by `CalculateWorkload#workload_class`; `amil?` exists ONLY on the finance side (20+ call sites). For cutoff/grandfathering decisions, the two core precedents (`TAX_RESPONSIBILITY_BENEFICIARY_CUTOFF_DATE` in `fiscal_invoice.rb`, `REPLACEMENT_INCENTIVE_START_DATE` in `replacement_session_incentive_factory.rb`) use a frozen `Date.new(...).freeze` constant + `>=` against a business date (`issued_at`, `started_at`) — never `created_at`. Full map in `references/feature-flags-cutoffs-and-health-plan-identification.md`: FeatureFlag key-resolution precedents, the Split.io dashboard workflow, the contract → default workload chain (`in_effect_since = contract.start_date`, `default_value: true`), why `MIN(workloads.created_at)` is NOT a reliable \"contract default\" proxy (8 other `CreateWorkload` call sites; cases without \"Aplicar prescrição padrão?\" get their first workload only at the first Vineland), and the `clinical_case_workloads` index gaps (no index on `created_at`/`in_effect_since`).
+
 ## Cross-references
 
+- **`genialcare-datadog-investigation`** — Full RUM→APM→BigQuery triangulation methodology
+  for production incident reports. Load this FIRST when the user reports a live production
+  bug ("terapeuta relatou erro X") rather than asking to investigate code territory — it
+  covers the outside-in flow (BQ identifiers → RUM error → APM trace → blast radius) that
+  this skill's CDC/rollback pitfalls (#11, #12, and the `TrailblazerTransactionWrap` pitfall
+  above) support.
 - **`investigate-bff-flow`** — The BFF (Node.js GraphQL) layer that proxies
   to this core backend. If the user is investigating a full-stack flow, load
   both skills.
@@ -694,10 +841,28 @@ projects/core/
   at creation but only 1-3h when editing later (delay_level changed, or
   different user role). Full stack trace from frontend dropdown → BFF →
   core service → Porto workload limits table.
+- `references/workload-calculation-and-limits.md` — Full architecture of HOW
+  `recommended_hours` is *calculated* (not just validated): the
+  `vineland_report_created` → `CalculateWorkload` trigger, `VinelandDelayLevelCalculation`
+  (delay_level score mapping + `first_assessment?`), the plan dispatch (`workload_class`
+  → Porto/Bradesco/Default services with their `define_workload` + `limits` tables), the
+  first-assessment-vs-reassessment split (auto-create vs `SuggestedWorkload` pending approval),
+  the "reassessment only reduces" min-rule, the Bradesco weekday-availability hardlock, the
+  three-layer limits, the `clinical_case_reference` bypass (per-user per-case; owner does NOT
+  bypass), and the "OG" = owner+reference role-group terminology.
+- `references/allocation-limiting-operational.md` — "Limiting" is OVERLOADED:
+  the operational `People::AllocationLimiting` (per-child ceiling, daily 1AM job,
+  `weekly_workload` vs `max_workload_per_day*5` vs child availability slots,
+  consumed in admin) is a DIFFERENT mechanism from the `WorkloadLimits` dropdown.
+  Disambiguate before answering any "limiting" question.
 - `references/enum-migration-checklist.md` — Which files to change when
   adding a new enum value (domain, subdomain, etc.): 3 files across core +
   clinical-panel. Also covers the CSV→i18n→BQ→enum discovery pattern for
   mapping Portuguese values to English enum constants.
+- `references/pei-objective-program-model.md` — PEI Objective↔Program data model:
+  the legacy `objective.program` (singular, ABA-only `has_one`) vs `objective.programs`
+  (plural, join table, current); the 3-era evolution (1→N→1 program); BFF singular-field
+  stays ABA-only; prod counts (99% single-program, 0.95% legacy multi-program residue).
 - `references/speech-therapy-assessments-and-objectives.md` — Domain map of
   the Fono (speech therapy) assessment → PEI objective data model: Library
   Objective vs PEI Objective models, the DUAL link (library_objective_id AND
@@ -705,19 +870,68 @@ projects/core/
   path, tenant/PEI/clinical_case scoping (clinical_case has_one pei), the
   fact that the 5 Fono sub-assessments have NO link to objectives/protocol_items
   (only Vineland does), and the assessment enum locations.
+- `references/clinical-case-discipline-alta-graduation.md` — "Alta"/"graduation" of a
+  discipline = `ClinicalCaseDiscipline.status == "completed"`; the completion side effects
+  (zero workload + reprove pending suggested + `DisciplineCompleted` event) vs the safe
+  `status: "active"` reactivation path (NO side effects); `ClinicalCase.number` is the human
+  case number (unique per tenant); fono = `speech_therapy`; the "horas zeradas" root cause
+  and how to verify/remove an alta in production.
 - `references/documents-config-visibility.md` — How `ClinicalCaseFileTypeConfig`,
   `by_config_scopes`, `DocumentTypeConfigResolver`, and the backfill rake
   interact. Why documents go invisible when tenants lack generic configs,
   and the gap in new-tenant provisioning.
+- `references/clinical-case-file-deleted-before-job.md` — The
+  `ExtractSensoryProcessingMeasureReportInfoJob` NOT_FOUND case: event wiring
+  (`clinical_case_file_created` → `ExecuteUseCaseJob`), the "file created then deleted
+  before the delayed job ran" benign-error pattern, and the CDC
+  (`raw.clinical_case_documents_events`) create→delete timeline proof.
 - `references/signing-envelope-cancel-gap.md` — Digital signature envelope
   domain (TCLE/informed-consent-form): event→job→envelope chain, per-clinician
   idempotency, the absence of any cancel/void capability (no `cancelled`
   status, no `void` in Zoho/Autentique clients, no envelope-cancelling consumer
   on `clinician_removed_from_clinical_case`), and the two-part manual
   remediation (delete `ClinicalCaseFile` + void in the provider dashboard).
+- `references/direct-assessment-registry-null-investigation.md` — Full trail of the
+  "direct_assessment session has NULL registry" bug: reproduction recipes (Docker
+  `rails runner` + `--entrypoint bundle`), the forced-fail test that proved
+  `Wrap(TrailblazerTransactionWrap)` rolls back EVERYTHING, the conclusion that the
+  registry is created-then-deleted (via `Delete<X>TherapyAssessmentsRegistry` +
+  `dependent: :nullify`), and the three refuted hypotheses (race, `updated_by` nil,
+  partial commit) so they are not re-investigated.
+- `references/registry-status-revert-investigation.md` — DISTINCT bug from the
+  NULL-registry one: a Fono/TO registry stuck `status='started'` with ALL
+  sub-assessments `completed` (therapists: "preenchi tudo mas não completou"). Root
+  cause = `DirectAssessmentRegistry#recalculate_status!` `else → mark_as_started!`
+  downgrades completed→started; Fono registry NEVER got the `with_lock` (only TO did,
+  commit `c56a7e8497`), `reopen`/`mark_as_started!` is unlocked, and the recalc runs in
+  a SEPARATE transaction from the sub-assessment save. CDC proves a `completed → started`
+  revert (TO reverted even AFTER the June lock), plus a two-different-`updated_by_id`-in-
+  the-same-second concurrency confirmation. Includes BQ/CDC table names, the "registry
+  `updated_by` = creator only" attribution gotcha, and fix recommendations.
 - `references/customer-io-identifier-and-device-flow.md` — Customer.io
   identifier strategy (email vs id), the Track v1 "ghost profile" gotcha
   (email in `id` field is NOT auto-detected — only the JS SDK does that), the
   Track v2 fix (`identifiers: {email}`), and the mobile→bff→core
   device-registration flow. Load when investigating push notifications, device
   registration, or "identifies but device doesn't associate".
+- `references/feature-flags-cutoffs-and-health-plan-identification.md` — FeatureFlag
+  key-resolution precedents (per-case/per-report/per-tenant) and the Split.io
+  dashboard workflow; the two grandfathering cutoff precedents (frozen
+  `Date.new(...).freeze` + `>=` vs business dates); the contract → clinical case
+  → default workload chain (`in_effect_since = contract.start_date`,
+  `default_value: true`, "Aplicar prescrição padrão?" checkbox) and why
+  `MIN(workloads.created_at)` is not a reliable "contract default" proxy;
+  `clinical_case_workloads` index gaps; name-based operator identification on
+  the clinical side (Amil/Bradesco/Porto, `integration_alias` not propagated,
+  pack-graph root cause) with the seeds inventory and spec-territory count for
+  workload rules.
+- `references/contract-inventory-sync-churn-and-health-plan-data.md` — Full
+  contract column inventory; the `category_type` enum (Amil sub-plans incl.
+  `amil_one_amil`) as a robust discriminator vs fragile name matching;
+  `SetInsuranceHealthPlan` update-in-place semantics (find_or_create_by, delete
+  on `private_contracting`, no unique index); the fact that churn NEVER touches
+  clinical data (3 operational-only consumers, no churn signal in the clinical
+  pack); backflow/plan-change = NEW contract (start_date unique, no reopen);
+  `ClinicalCaseWorkload` has no `contract_id` and no discard on churn. Load for
+  any grandfathering / plan-identification / "anchor workload to current
+  contract" work.

@@ -42,6 +42,53 @@ Key FKs confirmed in `db/migrate/20240222193718_create_intervention_library_obje
 So an Objective may point at the Library Objective **and/or** directly at the
 ProtocolItem. `protocol_item` is the common denominator.
 
+### Verified in production (2026-09): objectives WITHOUT `library_objective_id` are real, not hypothetical
+
+Read-only `rails runner` on the prod core pod (all tenants, non-discarded):
+
+```
+total (all tenants):           39,029
+not discarded:                 38,366
+library_objective_id NULL:        274
+  → protocol_item_id present:     274   (100% of them)
+  → both NULL:                      0
+```
+
+Protocol-item type split of those 274 (all in tenant `6f8da042-2dd1-4872-a613-84d371bde78c`):
+
+```
+protocol_item_type = Intervention::Protocol::ProtocolItem → 204  (matchable via library_objective.protocol_item_id)
+protocol_item_type = Intervention::Protocol::Protocol   →  70  (points at the Protocol, NOT a ProtocolItem — NOT reachable via library_objective.protocol_item_id)
+```
+
+### Protocol breakdown of the 274 (2026-09 follow-up) — ALL non-Fono, so the fallback is NOT needed for Fono
+
+The 274 objectives WITHOUT `library_objective_id` break down by protocol name:
+
+```
+protocol_item_type = ProtocolItem → Vineland 3: 204
+protocol_item_type = Protocol   → VB-MAPP 57, Socially Savvy 8, ABLLS 3, Jasper 2
+```
+
+**None are Fono.** The Fono ("Fonoaudiologia") protocol has **4,051 objectives,
+and every single one has `library_objective_id` populated** (0 with NULL). The
+274 NULL rows are all legacy Vineland/VB-MAPP/ABLLS/Jasper/Socially Savvy from
+2023–2024 (86 of them in 32 still-active cases, but all non-Fono regardless).
+
+Consequence for the Fono de-para feature: match PEI Objective → Library
+Objective by **`library_objective_id` only** — no `protocol_item_id` fallback.
+The fallback is unnecessary for Fono (no Fono objective lacks
+`library_objective_id`) and would be ambiguous anyway (a `protocol_item` is N:1
+with `library_objectives`). The "dual link" is a real data-model shape, but it
+is **irrelevant to Fono**; keep the fallback in mind only for Vineland/VB-MAPP-
+style objectives if those are ever wired into a de-para.
+
+> Lesson: when verifying a data-model assumption against prod, characterize the
+> rows by **domain/protocol**, not just by count — "274 objectives without
+> `library_objective_id`" reads as "the fallback is required", but the protocol
+> breakdown (all non-Fono) inverts the decision. A bare existence count can be
+> actively misleading.
+
 ## Join path: library_objective + clinical_case → Objectives
 
 ```
