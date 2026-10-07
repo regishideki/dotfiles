@@ -121,6 +121,66 @@ Em vez de `domain_type` + nome-folha, usar um path completo até o dado (ex:
   `augmentative_and_alternative_communication` (Comunicação Expressiva primeiro). Ao montar
   tabs/protótipo, siga essa ordem — não é alfabética, e começa por Comunicação Expressiva.
 
+## Auditoria de completude: classificar os "sem correspondência"
+
+Quando o seed reporta alvos (objetivos) sem match, **não trate todos como o mesmo problema**.
+Classifique cada um em duas naturezas opostas antes de decidir — juntar tudo num "N sem
+correspondência" esconde que parte deles deveria existir:
+
+- **Gap de catálogo** (deveria existir, falta no sistema): objetivo clinicamente válido que a
+  biblioteca simplesmente não tem. Ex Fono: `/s/` e `/r/` Monossílabos — o sistema só tem esses
+  fonemas em Dissílabos/Trissílabos. Implicação **mais forte que "não aparece na página"**: o
+  objetivo não existe no catálogo, logo a terapeuta **nem consegue criá-lo no PEI**. O gap do
+  de-para é *sintoma* de um gap de catálogo — corrigir é tarefa de dados/catálogo, não do de-para.
+- **Descartado na migração** (dead data): objetivo removido intencionalmente. Ausente está certo;
+  não ressuscitar.
+
+### Como diagnosticar RÁPIDO (antes de classificar)
+
+O próprio seed já separa as duas naturezas se você rodar em **DRY_RUN**:
+
+```
+DRY_RUN=true bundle exec rake <import_task> TENANT_NAMES=<tenant>
+```
+
+Ele imprime `Objectives without a library match (N)` com o **número de linha do CSV** e
+`Items without a translation (N)`. Esse é o caminho mais curto para a lista exata de gaps — não
+derive por comparação manual protótipo × banco.
+
+**Armadilha do `discarded_at` (a causa mais comum de "sem match" que não é gap de catálogo):**
+o rake de match usa escopo `.kept` (filtra `discarded_at IS NULL`). Um objetivo que **existe na
+biblioteca mas está soft-deleted** é reportado como "sem match" mesmo estando lá. Então, para cada
+objetivo "sem match", antes de concluir "falta no catálogo", rode:
+
+```sql
+SELECT description, discarded_at IS NOT NULL AS discarded
+FROM intervention_library_objectives
+WHERE description ILIKE '%<trecho>%';
+```
+
+- `discarded = t` → é dead data (objetivo renomeado/removido e a versão antiga descartada). No
+  Fono, **todos** os 6 "sem match" (vogal tônica, entonação de frases, lábios fechados, navega
+  entre as pranchas, `/s/` Monossílabos, `/r/` Monossílabos) eram: 4 descartados + 2 realmente
+  ausentes. Classificar como "tudo gap de catálogo" levaria a criar objetivos duplicados.
+- `discarded = f` ou `0 rows` → gap de catálogo genuíno (criar é decisão de produto/dados).
+
+Note também que a biblioteca pode guardar **duas redações** do mesmo objetivo (a antiga do CSV e a
+renomeada), ambas descartadas — sinal de revisão de catálogo, não de erro no de-para.
+
+Riscos downstream que merecem verificação (não assuma que o único efeito é "some da tela"):
+
+1. **Órfão de PEI** — se a migração que descartou um objetivo deixou `intervention_objectives`
+   pendurados nele, ele "existe no PEI da criança mas some da tela" (nem o de-para nem o join de
+   resolução o resgatam). Uma query por objetivos apontando para `library_objective_id` /
+   `protocol_item_id` inexistente resolve em minutos.
+2. **Drift do seed** — o full-rebuild é manual; quando o catálogo ganhar o objetivo faltante,
+   alguém precisa atualizar o CSV + re-rodar o rake. Não há automação vigiando o catálogo.
+3. **Perda de confiança** — a terapeuta assume a lista por item exaustiva; gap em fonema de alta
+   frequência (`/s/` ceceio, `/r/` rotacismo) parece bug. Precedente real de confiança no de-para:
+   TO mapper, caso 491.
+4. **Assimetria suspeita** — `/rr/` Monossílabos existe mas `/r/` Monossílabos não; inconsistência
+   que parece erro de cadastro, não decisão. Registre o porquê para não parecer bug.
+
 ## Trade-offs da forma do de-para
 
 | Forma | Prós | Contras |
@@ -169,6 +229,42 @@ Para exibição/consulta pura, o genérico + resolução dinâmica (library obje
 já resolve. A camada específica pode apontar para o `generic_de_para_id` (traceabilidade) ou
 sobrescrever o `library_objective_id` (override) — e pode ser adicionada DEPOIS sem re-trabalhar o
 genérico, que já deixa o gancho pronto.
+
+## Versionando o CSV fonte quando o especialista de domínio corrige
+
+Quando o time clínico grava um vídeo explicando uma correção e sobe uma planilha atualizada:
+
+1. **Não sobrescreva o CSV antigo.** Copie o antigo para `<nome>.v1.csv` (histórico) e o novo
+   para `<nome>.v2.csv` (vigente), ambos na pasta da story/skill que consome o de-para. Atualize
+   os pontos de leitura (rake/seed docs, `analysis.md`, `todo.md`) para apontar para a versão
+   vigente, com uma nota "histórico: `.v1.csv`".
+2. **Valide a transcrição contra o diff real antes de documentar o achado.** Transcrição de
+   vídeo tem erros de reconhecimento; não confie só na fala para descrever "o que mudou" — rode
+   um diff entre a versão antiga e a nova e confirme linha a linha que o texto da transcrição
+   bate com a mudança real. Normalize quebras de linha (CRLF vs LF) antes do diff — CSVs
+   exportados de planilha turvam o diff com ruído de terminador de linha em toda linha idêntica;
+   sem normalizar, um diff de 3 mudanças reais aparece como 300 linhas modificadas.
+3. **Confirme se a correção é reordenação/dado (não regra nova).** Pergunta recorrente do
+   usuário: "isso mudou uma regra condicional ou só reorganizou o de-para?". Responda contando
+   ocorrências de termos-chave antes/depois (`old.count(term)` vs `new.count(term)`) e inspecionando
+   se alguma coluna nova de condição apareceu — se não, é dado/ordem, não lógica. Documente essa
+   distinção explicitamente na análise (o de-para geralmente é só dado; "quando sugerir" é regra
+   condicional, categoria separada — ver seção "Regra de recomendação" no domínio Fono).
+4. **Quando o usuário pedir para incorporar a v2** (não só analisar), o fluxo completo é:
+   1. Adicione ao lookup de tradução (`item-name-to-identifier.csv`) qualquer item novo que a v2
+      introduziu e que ainda não tinha `item_identifier` — nomeie o campo seguindo a convenção
+      real do código-fonte quando possível (ex: se o CSV cita "Meios Não Convencionais" e o
+      frontend tem um campo `uses_non_conventional_means`, use esse nome, não invente um novo).
+   2. Regenere a tabela expandida a partir da v2 + lookup atualizado (mesmo script/lógica de
+      sempre: split de itens por linha, resolve nome→`item_identifier`, expande cruzamentos por
+      dimensão). Confira que **0 itens ficaram sem match** antes de prosseguir — se algum item
+      não casar, é sinal de que o lookup ainda está incompleto, não que a v2 tem erro.
+   3. Se houver protótipo/UI consumindo listas hardcoded de objetivos por item (constantes JS
+      tipo `CE_COMBINES`, `caa`), atualize-as para refletir os novos vínculos — não baste trocar
+      o CSV e esquecer o protótipo, ele é o artefato que o usuário de fato revisa visualmente.
+   4. Rode a suíte de protótipos (`prototypes:test` + `prototypes:build` + `npm run build`) e
+      abra o protótipo no navegador para confirmar visualmente (ligar o toggle e checar a coluna
+      de objetivos) — não confie só na ausência de erro de sintaxe.
 
 ## Pitfalls
 
@@ -250,6 +346,21 @@ relacionadas" no lugar de "domínio/subdomínio/item".
 
 Ver user story `20260908-objetivos-referenciando-avaliacoes-fono` (alternativa inversa,
 comparativo com a forward `20260903-vinculo-objetivos-itens-avaliacao-fono`).
+
+### Protótipos forward × inverso: confirme qual está em jogo
+
+Quando o usuário disser "olha o protótipo", há **dois** e misturá-los é erro de correção imediata:
+
+- **Forward** (item → objetivos, a tela de avaliação): story `20260903`, protótipo publicado em
+  `https://genialcare.github.io/product-engineer-agent/prototypes/vinculo-objetivos-itens-avaliacao-fono/`.
+  É a fonte de verdade da **tela** — o que aparece por item na avaliação.
+- **Inversa** (objetivo → itens, o "roadmap"): story `20260908`, um `index.html` local na pasta da
+  story (`prototipo/index.html`), sem deploy.
+
+Os dois mostram o MESMO de-para, mas em direções opostas — e a inversa agrega por objetivo com
+notas como "(aplica-se às 9 funções)". Se a tarefa é "fazer a TELA igual", olhe o **forward**; usar
+a inversa faz você concluir "mostra uma vez" onde a tela pede "repetir por linha" (foi o erro real
+desta sessão).
 
 ## Ver também
 

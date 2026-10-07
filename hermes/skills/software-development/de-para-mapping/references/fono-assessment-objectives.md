@@ -61,6 +61,12 @@ Seed = `truncate` + re-import, idempotente, reporta os sem match.
   completo fica no dado, para cada item da avaliação.
 - **Item genérico "Comunicação Expressiva"** (sem sub-campo) → refere-se à primeira parte da
   avaliação (Funções + meios), NÃO é artefato de digitação.
+- **O de-para mira a SÍNTESE, não o dado bruto de entrada.** Na Imitação (Wertzner), a tabela de
+  **vocabulário** (palavras imitadas: Peteca, Bandeja, Tigela + transcrição + processo por palavra)
+  **não tem de-para** — só os 14 "Processos Fonológicos" (a síntese) têm. Igual em CAA: só 8 dos 21
+  campos de `clinical_observations` têm de-para (os demais são observação clínica bruta). Ao
+  auditar "por que este item não mostra objetivo", pergunte primeiro se o item é síntese (tem
+  de-para) ou dado de entrada (não tem, por escopo) — não confunda com objetivo descartado.
 
 ## Achados que generalizam
 

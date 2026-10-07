@@ -59,6 +59,16 @@ bq query --nouse_legacy_sql 'SELECT source_metadata.change_type, source_metadata
 
 Se só retorna `INSERT/false`, dedup não é necessário — não vire um falso bloqueio.
 
+## Fan-out em JOINs após dedup de changelog CDC
+
+Três armadilhas reais que um diff sozinho não revela — todas ligadas a keys de JOIN que não são a chave de dedup, ou a chaves vazias (`""`). Ver `references/cdc-dedup-join-fanout.md` (caso PR #796).
+
+1. **`PARTITION BY <key>` colapsa linhas com key vazia numa partição só** — se `key=""` para N registros, todos caem na MESMA partição e o `ROW_NUMBER() ... = 1` descarta N−1 registros silenciosamente (perda de dados, sem erro). Fix: particionar por `COALESCE(NULLIF(key, ""), CONCAT("__empty__", <secondary_key>))`. O prefixo `__empty__` evita colisão entre um valor real de `key` e um `secondary_key` usado como fallback.
+
+2. **`"" = ""` casa em JOIN** — se duas colunas podem vir como string vazia na fonte, `JOIN ... ON a = b` casa `""` com `""` e causa fan-out (1 linha × N). Guard: `NULLIF(a, "") = NULLIF(b, "")` em AMBOS os lados (em BigQuery `NULL = NULL` nunca é true, então o guard neutraliza o match).
+
+3. **Fan-out via key secundária quando o dedup usa outra chave** — se você deduplica por `customer_id` mas faz um segundo JOIN por `internal_customer_id`, essa chave secundária NÃO é garantida única nas linhas sobreviventes (o mesmo `internal_customer_id` pode aparecer sob `customer_id=""` E sob `customer_id` preenchido, ou sob dois `customer_id` diferentes). O JOIN por chave secundária então fan-out (1 linha → N idênticas). Mitigação: o `assertions.uniqueKeys` da Gold pega isso em voz alta (falha no run, não corrupção silenciosa) — use isso como rede de segurança e confirme contra os dados reais que a chave secundária não se repete entre partições. Idealmente adicione um caso de teste cobrindo a colisão.
+
 ## Avaliação de camadas Bronze/Silver/Gold
 
 Ir `raw` → `gold` direto é defensável quando a tabela final é pequena (centenas de linhas) e o caso de uso é estreito. Mas sinalize quando o fato Gold está "gordo demais" — embutindo lógica de camadas inferiores que tem reuso:
