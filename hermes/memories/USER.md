@@ -1,11 +1,15 @@
-Prefere output BQ enxuto: sem prefixos de alias, sem IDs internos, sem colunas extras. Dados nível library_objective, não per-clinical-case. Tenant names explícitos, nunca "all".
+BQ enxuto: sem alias/IDs internos/colunas extras; nível library_objective; tenant names explícitos.
 §
-Console/shell snippets: fix SNIPPET not repo code, follow EXACT pattern of working ones. User iterates fast: copy+test, reports exact error. Prefer concise output (summary counts + exceptions, not full dumps). ClinicalCaseWorkload#hours is :interval — pass Duration (4.hours) not .to_i.
+Snippets console: fix SNIPPET não repo; seguir EXACT pattern dos que funcionam. Itera rápido (copy+test, erro exato). Output enxuto (counts+exceções). ClinicalCaseWorkload#hours é :interval — passar Duration (4.hours).
 §
-Diferenças de contagem bq CLI vs Metabase: (1) filtros viram implicit INNER JOIN, (2) service account vê menos tenants, (3) CACHE STALE — forçar fresh run via /api/dataset antes de debugar.
+bq CLI≠Metabase: filtros→INNER JOIN implícito; SA vê menos tenants; CACHE STALE (forçar fresh /api/dataset).
 §
-Metabase: RAW única. PT-BR, full-width, drill-down crossfilter, cores Psico. Series: Aderente(bottom)/Sem obj(mid)/Não Aderente(top). Sort "Não Aderente" via UI. Filtros MBQL só via dashboard endpoint.
+Metabase: RAW única. PT-BR, full-width, crossfilter, cores Psico. Filtros MBQL só via dashboard endpoint.
 §
-Security+LGPD: gitignore env/creds before writing; anonymize patient/therapist names in committed/published artifacts. English comments. Tooling: check .nvmrc+yarn.lock, yarn not npm.
+LGPD: gitignore creds; anonimizar pacientes em artefatos. English comments. yarn (ver .nvmrc), não npm.
 §
-PRs: only task-relevant changes — no drive-by commits. Docs go to main, not PRs. Self-contained docs per repo. PR descriptions in pt-BR for GenialCare repos. Makefile/code comments in English. Never commit secrets — verify .gitignore covers sensitive files and document how to fill gitignored configs in README.
+PRs: only task-relevant changes — no drive-by commits. Deploy em PRs sequenciais (schema+sync → rake backfill → flip lógica) com gate manual de backfill. Docs go to main, not PRs. PR descriptions pt-BR; Makefile/comments English. Prefere arquitetura correta a atalho, mesmo com mais esforço.
+§
+Chamados: #alerta-central-produto primeiro, depois Claudinho (só Capacidade Clínica, S05U5PS6MJA). Ausente: scripts DRY_RUN prontos p/ aprovar depois.
+§
+Chamados: #alerta-central-produto primeiro, depois Claudinho (só S05U5PS6MJA). Aprovação POR ITEM antes de executar/responder; Regis fornece TOTP; escalado à RT=completo; às vezes responde pessoalmente — mandar link/contexto.

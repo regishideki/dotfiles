@@ -1,25 +1,43 @@
 dotfiles via rcm (~/dotfiles). .claude/.hermes symlinked. GenialCare, pt-BR.
 §
-Slack #product-engineers-capacidade-clinica = C06PPV63EU9.
+Slack: Farol TO→C04J33K1YLX; regras clínicas validar na fonte (DM C0C52MUT0F6).
 §
-Trailblazer use cases (*::UseCases::* < Railway): chamar com HASH POSICIONAL não kwargs: `UseCase.call({id:..., user:...})`. Kwargs→ArgumentError.
+UseCase.call kwargs: params:{}, current_user: (não posicional).
 §
-Core repo PRs need .test-impact/impact-<branch>.txt or CI fails (rake-only→SKIP_TESTS).
+Core: PRs precisam .test-impact/impact-<branch>.txt (CI fail) ou SKIP_TESTS (não bloqueia merge). Lint=standardrb. FeatureFlag.on? exige key: (sem default); flag global usa key: clinical_case.tenant_id.
 §
-Jira/Atlassian MCP: precisa `hermes mcp login atlassian` (cai intermitente 'transport is down'—retry). Cards: REVIEW→VALIDATION→DONE.
+MCP OAuth: expira ~24h; `hermes mcp login <name>` exige TTY — `script -q /dev/null` (abre browser).
 §
-db:migrate via docker-compose exec -e DISABLE_SPRING=1.
+Sem RLS; multi-tenant→filtrar tenant_id=6f8da042-2dd1-4872-a613-84d371bde78c (genialcare UUID)
 §
-BQ+Metabase: MCP=read-only, write=REST API x-api-key. Single-RAW (1 RAW/sub-assessment) — ask antes de quebrar. BQ: assessment/PEI/objetivos=`supervision-production-8f1v`, casos/sessões=`data-kernel-production-4o7n`(datakernel).
+Não responde clarify()—julgamento conservador.
 §
-User prefere respostas diretas e escopadas; corrige tangentes não pedidas. Não responde clarify() a tempo — julgamento conservador. Cobra varredura proativa de estado real (gh pr list --state all etc) a cada retomada de trabalho multi-PR — não aceita agente reativo (só age quando notificado).
+PR base=SEMPRE main. Bot 1ª validação=time genialcare-engineering-agent (dispara agentic-pr-review.yaml; PR precisa READY antes do request). capacidade-clinica só pós-validação usuário.
 §
-GitHub GenialCare: PR→merge feature na development p/ testar. Docs na main. Migration+backfill: PR1=aditivo,PR2=troca fonte só após backfill. Todo PR: assignee=regishideki, reviewer=GenialCare/capacidade-clinica (gh pr edit --add-assignee regishideki --add-reviewer GenialCare/capacidade-clinica). Após CI verde, checar gemini-code-assist 2x (10min): simples→aplicar e responder EM REPLY NA THREAD (nunca comentário solto); complexa→avisar usuário; declinar→responder na thread com motivo.
+Docker=colima (não Desktop), 12GB/8cpu, auto-start via brew services.
 §
-Local-dev: targets clinical-* (inglês), yarn não npm, nvm use antes, git check-ignore antes de segredos (skill genialcare-local-dev). core: standardrb via ruby 3.4.5@core (não RVM). Docker bundle_path desatualizado→fix `docker compose run --rm app bundle install`. Dev/staging Cloud SQL só sintético.
+Second-brain KB: ~/.hermes/second-brain/ (skill 'second-brain').
 §
-OC = Clinical Guidance Registry (não é objetivo/PEI).
+clinical-panel Auth0 dev: dev@genialcare.com.br (senha = o próprio email dev@genialcare.com.br).
 §
-CSV padrão p/ imports; de-para deriva de Google Sheet (corrigir planilha, não CSV).
+prefere git/browser, não gsutil/gcloud.
 §
-core: `development` é force-pushed → `git fetch` antes de checar remotes (refs stale).
+mobile-bff: sem branch development; deploy=gh workflow run deploy-manually.yaml -f branchName=<b>.
+§
+BFF local: CORE_API_URL=http://localhost:3000 (senão core-app-1/remote). Panel: rota clinical-cases usa :id=clinicalCaseId; sessions usa :sessionId.
+§
+clinical-panel: assessment types TS manuais (sem codegen); enum GraphQL BFF não toca panel.
+§
+'psico'/'psicologia' = disciplina 'aba' (não existe 'psychology'). fono=speech_therapy; TO=occupational_therapy.
+§
+pup = Datadog CLI (~/bin/pup).
+§
+Proatividade: esgote código/skills, Slack, BQ/Postgres, memória, git, internet antes de perguntar. Perguntar só p/ decisão de produto ou sensível (OpenFGA/LGPD).
+§
+custom_gitignore/ (repo genial) = artefatos locais, gitignored. Nunca commitar.
+§
+Prefere cron 15min. Notif Slack: `bash ~/.hermes/scripts/notify_slack.sh "<msg>"` (bot Regermes, user U021XDAFMM4).
+§
+TCLE: só obrigatório se terapeuta tem ≥1 sessão finalizada; nunca atendeu→remoção manual. Reenvio: PO→Administração→Assinaturas.
+§
+core: env dev deploya da branch development (não main).
